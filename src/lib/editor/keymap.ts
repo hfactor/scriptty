@@ -3,6 +3,7 @@
 import { keymap } from 'prosemirror-keymap';
 import { type Command, TextSelection, type EditorState } from 'prosemirror-state';
 import type { NodeType } from 'prosemirror-model';
+import { undo, redo } from 'prosemirror-history';
 import { screenplaySchema } from './schema';
 
 /**
@@ -129,5 +130,7 @@ const handleShiftTab: Command = (state, dispatch) => {
 export const screenplayKeymap = keymap({
 	Enter: handleEnter,
 	Tab: handleTab,
-	'Shift-Tab': handleShiftTab
+	'Shift-Tab': handleShiftTab,
+	'Mod-z': undo,
+	'Shift-Mod-z': redo
 });

@@ -16,6 +16,7 @@
   // Svelte 5 runes for reactive state
   let currentMode = $state<'ENGLISH' | 'MALAYALAM'>('ENGLISH');
   let currentElement = $state<string>('SCENE HEADING');
+  let modeFlash = $state(false);
 
   // Create initial document with one empty scene_heading
   function createInitialDoc() {
@@ -69,20 +70,16 @@
     const editorDom = view.dom;
 
     function handleMalayalamKeydown(event: KeyboardEvent) {
-      // Debug: log every keypress with scheme and processKey result
-      if (event.key.length === 1) {
-        console.log('[Scriptty keydown]', event.key,
-          'isMalayalam:', inputManager.isMalayalam,
-          'scheme:', inputManager.scheme,
-          'processKey result:', inputManager.processKey(event.key));
-      }
-
       // Ctrl+Space toggles input mode — intercept before ProseMirror sees it
       if (event.ctrlKey && event.code === 'Space') {
         event.preventDefault();
         event.stopPropagation();
         const isNowMalayalam = inputManager.toggle();
         currentMode = isNowMalayalam ? 'MALAYALAM' : 'ENGLISH';
+
+        // Brief flash on the mode indicator for visual feedback
+        modeFlash = true;
+        setTimeout(() => { modeFlash = false; }, 500);
         return;
       }
 
@@ -125,7 +122,7 @@
 <div class="editor-wrapper">
   <div class="editor-container" bind:this={editorElement}></div>
   <div class="status-bar">
-    <span class="status-mode" class:malayalam={currentMode === 'MALAYALAM'}>
+    <span class="status-mode" class:malayalam={currentMode === 'MALAYALAM'} class:flash={modeFlash}>
       {currentMode}
     </span>
     <span class="status-separator">|</span>
@@ -230,6 +227,13 @@
 
   .status-mode.malayalam {
     color: #81c784;
+  }
+
+  .status-mode.flash {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 3px;
+    padding: 1px 6px;
+    transition: background 0.5s ease-out;
   }
 
   .status-separator {
