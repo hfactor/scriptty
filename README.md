@@ -1,42 +1,50 @@
-# sv
+# Scriptty
 
-Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
+An offline desktop screenwriting app for Malayalam and English screenwriters.
 
-## Creating a project
+Built with Tauri 2, SvelteKit, TypeScript, ProseMirror, and Typst.
 
-If you're seeing this, you've probably already done this step. Congrats!
+---
 
-```sh
-# create a new project
-npx sv create my-app
+## Features
+
+- Hollywood single-column and Indian two-column PDF export
+- Malayalam input — Mozhi, Inscript 1, and Inscript 2 schemes
+- Mixed-script writing — Malayalam and English in the same document
+- Scene navigator with click-to-jump and auto-numbering
+- Bundled fonts — Noto Sans Malayalam and Manjari
+- Fully offline — no cloud, no telemetry, no subscription
+- .screenplay file format — plain JSON, version-control friendly
+
+## Supported Platforms
+
+- macOS (primary)
+- Windows and Linux (Tauri 2 supported, untested)
+
+## Development Setup
+
+Prerequisites: Rust 1.70+, Node.js 18+, npm
+```bash
+git clone https://github.com/stultus/scriptty.git
+cd scriptty
+npm install
+npx tauri dev
 ```
 
-To recreate this project with the same configuration:
-
-```sh
-# recreate this project
-npx sv@0.12.5 create --template minimal --types ts --add prettier eslint --install npm .
+## Build
+```bash
+npx tauri build
 ```
 
-## Developing
+Output: src-tauri/target/release/bundle/
 
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
+## Tech Stack
 
-```sh
-npm run dev
+- Frontend: SvelteKit + TypeScript + ProseMirror
+- Backend: Tauri 2 + Rust
+- PDF: Typst (in-memory compilation, no temp files)
+- Fonts: Noto Sans Malayalam, Manjari (SIL OFL 1.1)
 
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
-```
+## License
 
-## Building
-
-To create a production version of your app:
-
-```sh
-npm run build
-```
-
-You can preview the production build with `npm run preview`.
-
-> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
+MIT — see LICENSE
