@@ -4,6 +4,7 @@
 // string formatted as a Hollywood single-column screenplay. The Typst markup is
 // compiled to PDF in memory using the Typst compiler and typst-pdf crate.
 
+use crate::screenplay::document::ScreenplayMeta;
 use chrono::Datelike;
 use serde_json::Value;
 use typst::diag::FileResult;
@@ -235,6 +236,101 @@ fn escape_typst(text: &str) -> String {
         .replace('$', "\\$")
 }
 
+/// Generates Typst markup for a screenplay title page from document metadata.
+///
+/// The title page is only generated if `meta.title` is non-empty (after trimming).
+/// It places the title and author centered on the page, with contact info and
+/// draft details at the bottom left.
+///
+/// Returns an empty string if the title is blank, so it's safe to always call
+/// this and prepend the result — it's a no-op when there's no title.
+fn generate_title_page_markup(meta: &ScreenplayMeta) -> String {
+    // `trim()` removes leading/trailing whitespace. `is_empty()` checks for "".
+    // If the title is blank, skip the title page entirely.
+    if meta.title.trim().is_empty() {
+        return String::new();
+    }
+
+    let mut page = String::new();
+
+    // Open a page block with title page margins (wider top/bottom for centering).
+    page.push_str("#page(margin: (top: 3cm, bottom: 3cm, left: 3cm, right: 2.5cm))[\n");
+
+    // --- Centered section: title + "Written by" + author ---
+    page.push_str("  #align(center)[\n");
+    page.push_str("    #v(8cm)\n");
+    // Escape the title so any Typst special characters (like # or $) are rendered literally.
+    page.push_str(&format!(
+        "    #text(size: 24pt, weight: \"bold\")[{}]\n",
+        escape_typst(meta.title.trim())
+    ));
+
+    // Only show "Written by" + author if the author field is non-empty.
+    if !meta.author.trim().is_empty() {
+        page.push_str("    #v(1cm)\n");
+        page.push_str("    #text(size: 14pt)[Written by]\n");
+        page.push_str("    #v(0.5cm)\n");
+        page.push_str(&format!(
+            "    #text(size: 14pt)[{}]\n",
+            escape_typst(meta.author.trim())
+        ));
+    }
+
+    page.push_str("  ]\n"); // close #align(center)
+
+    // --- Bottom-left section: contact info + draft line ---
+    // Only show if at least one of contact or draft info is present.
+    let has_contact = !meta.contact.trim().is_empty();
+    let has_draft = meta.draft_number > 0 || !meta.draft_date.trim().is_empty();
+
+    if has_contact || has_draft {
+        page.push_str("  #align(left)[\n");
+        // `#v(1fr)` pushes this content to the bottom of the page.
+        // `1fr` is a Typst "fractional" unit — it expands to fill available space.
+        page.push_str("    #v(1fr)\n");
+
+        if has_contact {
+            // Split multi-line contact info by newlines and join with Typst line breaks.
+            // `\` at the end of a line in Typst creates a line break (like <br> in HTML).
+            let contact_lines: Vec<String> = meta
+                .contact
+                .trim()
+                .lines()
+                .map(escape_typst)
+                .collect();
+            page.push_str(&format!(
+                "    #text(size: 10pt)[{}]\n",
+                contact_lines.join("\\\n")
+            ));
+        }
+
+        if has_draft {
+            page.push_str("    #v(0.3cm)\n");
+
+            // Build the draft line: "Draft N" optionally followed by " — DATE"
+            let mut draft_line = String::new();
+            if meta.draft_number > 0 {
+                draft_line.push_str(&format!("Draft {}", meta.draft_number));
+            }
+            if !meta.draft_date.trim().is_empty() {
+                if !draft_line.is_empty() {
+                    // " — " is an em dash separator between draft number and date
+                    draft_line.push_str(" \\u{2014} ");
+                }
+                draft_line.push_str(&escape_typst(meta.draft_date.trim()));
+            }
+            page.push_str(&format!("    #text(size: 10pt)[{}]\n", draft_line));
+        }
+
+        page.push_str("  ]\n"); // close #align(left)
+    }
+
+    page.push_str("]\n"); // close #page(...)
+    page.push_str("#pagebreak()\n\n");
+
+    page
+}
+
 /// Generates a Typst markup string from ProseMirror JSON content.
 ///
 /// This produces a complete Typst document with:
@@ -243,7 +339,7 @@ fn escape_typst(text: &str) -> String {
 /// - All screenplay elements formatted in Hollywood single-column style
 ///
 /// The returned string is valid Typst source that can be compiled to PDF.
-pub fn generate_typst_markup(content: &Value, font_name: &str) -> String {
+pub fn generate_typst_markup(content: &Value, font_name: &str, meta: &ScreenplayMeta) -> String {
     let elements = extract_elements(content);
 
     // Group elements for page break control — this ensures scene headings
@@ -273,6 +369,11 @@ pub fn generate_typst_markup(content: &Value, font_name: &str) -> String {
 "#,
         font_name
     ));
+
+    // Prepend a title page if the screenplay has a title.
+    // The title page uses its own page margins and layout, inserted after the
+    // global page/font setup but before any screenplay content.
+    markup.push_str(&generate_title_page_markup(meta));
 
     // Convert each group to Typst markup.
     // Hollywood format has specific indentation and spacing rules for each element type.
@@ -576,7 +677,7 @@ impl World for ScreenplayWorld {
 /// # Returns
 ///
 /// A complete Typst markup string ready for compilation to PDF.
-pub fn generate_indian_markup(content: &Value, font_name: &str) -> String {
+pub fn generate_indian_markup(content: &Value, font_name: &str, meta: &ScreenplayMeta) -> String {
     // Reuse the same element extraction as Hollywood format.
     // `extract_elements` parses ProseMirror JSON into a flat list of ScreenplayElements.
     let elements = extract_elements(content);
@@ -597,6 +698,11 @@ pub fn generate_indian_markup(content: &Value, font_name: &str) -> String {
 "#,
         font_name
     ));
+
+    // Prepend a title page if the screenplay has a title.
+    // Same title page layout as Hollywood format — it appears before the
+    // two-column content begins.
+    markup.push_str(&generate_title_page_markup(meta));
 
     // Split elements into scenes. Each scene starts with a `scene_heading` and
     // includes all elements until the next `scene_heading`.
@@ -866,9 +972,11 @@ pub fn generate_pdf_indian(
     content: &Value,
     font_name: &str,
     font_data: &FontData,
+    meta: &ScreenplayMeta,
 ) -> Result<Vec<u8>, String> {
     // Generate Indian two-column Typst markup instead of Hollywood format.
-    let markup = generate_indian_markup(content, font_name);
+    // `meta` is passed through to include the title page in the PDF.
+    let markup = generate_indian_markup(content, font_name, meta);
 
     // From here, the compilation pipeline is identical to `generate_pdf()`:
     // create a ScreenplayWorld, compile the Typst source, render to PDF bytes.
@@ -923,9 +1031,11 @@ pub fn generate_pdf(
     content: &Value,
     font_name: &str,
     font_data: &FontData,
+    meta: &ScreenplayMeta,
 ) -> Result<Vec<u8>, String> {
-    // Generate the Typst markup from the ProseMirror JSON
-    let markup = generate_typst_markup(content, font_name);
+    // Generate the Typst markup from the ProseMirror JSON.
+    // `meta` is passed through to include the title page in the PDF.
+    let markup = generate_typst_markup(content, font_name, meta);
 
     // Collect all font bytes — pass both regular and bold weights.
     // These are `&'static [u8]` slices embedded in the binary at compile time.
@@ -973,7 +1083,14 @@ mod tests {
     // `use super::*` brings everything from the parent module (pdf.rs) into scope
     // so we can call its functions in our tests.
     use super::*;
+    use crate::screenplay::document::ScreenplayMeta;
     use serde_json::json;
+
+    /// Creates a default (empty) ScreenplayMeta for tests that don't need title page data.
+    /// Using `ScreenplayMeta::default()` gives us blank fields, so no title page is generated.
+    fn empty_meta() -> ScreenplayMeta {
+        ScreenplayMeta::default()
+    }
 
     #[test]
     fn test_escape_typst_special_characters() {
@@ -1048,7 +1165,7 @@ mod tests {
             ]
         });
 
-        let markup = generate_typst_markup(&doc, "Noto Sans Malayalam");
+        let markup = generate_typst_markup(&doc, "Noto Sans Malayalam", &empty_meta());
         // Should contain the font setting
         assert!(markup.contains("Noto Sans Malayalam"));
         // Scene heading text should be uppercased
@@ -1081,7 +1198,7 @@ mod tests {
             ]
         });
 
-        let markup = generate_typst_markup(&doc, "Manjari");
+        let markup = generate_typst_markup(&doc, "Manjari", &empty_meta());
         // Character name should be uppercase and left-padded to Hollywood spec position
         assert!(markup.contains("JOHN"));
         assert!(markup.contains("pad(left: 6cm)"));
@@ -1107,7 +1224,7 @@ mod tests {
             ]
         });
 
-        let markup = generate_typst_markup(&doc, "Noto Sans Malayalam");
+        let markup = generate_typst_markup(&doc, "Noto Sans Malayalam", &empty_meta());
         // Malayalam text should pass through unmodified (no special chars to escape)
         assert!(markup.contains("രമേഷ് Flat ലേക്ക് നടന്നു"));
     }
@@ -1420,7 +1537,7 @@ mod tests {
             ]
         });
 
-        let markup = generate_typst_markup(&doc, "Noto Sans Malayalam");
+        let markup = generate_typst_markup(&doc, "Noto Sans Malayalam", &empty_meta());
         // The scene heading and first action should be inside a single unbreakable block
         assert!(markup.contains("block(breakable: false)"));
         assert!(markup.contains("1. INT. OFFICE - DAY"));

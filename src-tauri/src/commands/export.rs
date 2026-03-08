@@ -34,7 +34,9 @@ pub fn export_typst_markup(document: ScreenplayDocument) -> Result<String, Strin
 
     // `&document.content` passes a reference (borrow) to the content field.
     // We don't need to take ownership — we just need to read the JSON.
-    Ok(pdf::generate_typst_markup(&document.content, font_name))
+    // `&document.meta` passes a reference to the metadata so the markup generator
+    // can include a title page if the screenplay has a title set.
+    Ok(pdf::generate_typst_markup(&document.content, font_name, &document.meta))
 }
 
 /// Exports a screenplay document as PDF bytes.
@@ -85,7 +87,8 @@ pub fn export_pdf(document: ScreenplayDocument) -> Result<Vec<u8>, String> {
         bold: font.bold,
     };
 
-    pdf::generate_pdf(&document.content, font_name, &font_data)
+    // Pass `&document.meta` so the PDF includes a title page when metadata is present.
+    pdf::generate_pdf(&document.content, font_name, &font_data, &document.meta)
 }
 
 /// Exports a screenplay document as PDF bytes in Indian two-column format.
@@ -139,5 +142,6 @@ pub fn export_pdf_indian(document: ScreenplayDocument) -> Result<Vec<u8>, String
     };
 
     // Call the Indian two-column PDF generator instead of the Hollywood one.
-    pdf::generate_pdf_indian(&document.content, font_name, &font_data)
+    // Pass `&document.meta` so the Indian format PDF also includes a title page.
+    pdf::generate_pdf_indian(&document.content, font_name, &font_data, &document.meta)
 }

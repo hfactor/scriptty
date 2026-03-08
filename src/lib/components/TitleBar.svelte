@@ -3,6 +3,9 @@
   import { open, save } from '@tauri-apps/plugin-dialog';
   import { writeFile } from '@tauri-apps/plugin-fs';
   import { documentStore } from '$lib/stores/documentStore.svelte';
+  import MetadataModal from './MetadataModal.svelte';
+
+  let showMetadata = $state(false);
 
   // Derived display title — shows document title or "Untitled"
   let displayTitle = $derived(
@@ -93,6 +96,7 @@
   </div>
   <div class="actions">
     <button onclick={handleNew}>New</button>
+    <button onclick={() => { showMetadata = true; }}>Meta</button>
     <button onclick={handleOpen}>Open</button>
     <button onclick={handleSave}>Save</button>
     <button onclick={handleExportHollywood}>Export (Hollywood)</button>
@@ -102,6 +106,8 @@
     {/if}
   </div>
 </div>
+
+<MetadataModal bind:open={showMetadata} />
 
 <style>
   .title-bar {
