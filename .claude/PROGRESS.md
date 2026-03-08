@@ -33,12 +33,46 @@
 - Capture-phase keydown listener on `view.dom` intercepts keys before ProseMirror
 
 ### Editor UI
-- `Editor.svelte` component with ProseMirror wired up (schema + keymap + history)
-- Ctrl+Space toggles English/Malayalam mode
+- `Editor.svelte` component with ProseMirror wired up (schema + keymap + history + autoUppercase)
+- Ctrl+Space toggles English/Malayalam mode with visual flash feedback
 - Status bar showing current mode (ENGLISH/MALAYALAM) and element type
-- Hollywood-format CSS: uppercase scene headings, centered characters, indented dialogue, right-aligned transitions
+- Hollywood-format CSS with fixed-width 680px content area, pixel-based margins
+- `:global()` CSS selectors for ProseMirror-generated DOM nodes
+- CSS counter for auto-numbered scene headings
+- Dark theme: #141414 background, #1c1c1c editor surface, box-shadow page-on-desk look
 - `@font-face` declarations for all 4 bundled fonts
-- Dark theme (#1a1a1a background, #242424 editor surface)
+- Auto-uppercase plugin for Latin letters in scene_heading/character (preserves Malayalam)
+
+### File I/O
+- `commands/file.rs`: `new_screenplay`, `save_screenplay`, `open_screenplay` Tauri commands
+- `documentStore.svelte.ts`: reactive store with `loadTrigger` pattern to avoid $effect re-triggers
+- `saveWithDialog()` handles save-as when no path exists
+- Title derived from filename if meta.title is empty
+- Cmd+S / Cmd+O keyboard shortcuts on window-level keydown
+
+### Scene Navigator
+- `SceneNavigator.svelte`: collapsible left panel (220px), toggle with Ctrl+B
+- Scans ProseMirror content for scene_heading nodes
+- Click-to-scroll via ProseMirror TextSelection
+- Auto-numbered scene list
+
+### PDF Export (Hollywood)
+- `screenplay/pdf.rs`: full Typst PDF generation pipeline
+- `ScreenplayWorld` struct implementing `typst::World` trait for in-memory compilation
+- ProseMirror JSON → Typst markup → PDF bytes (no temp files)
+- Font embedding: selected font bundled into every PDF
+- Page break rules: element grouping into unbreakable blocks
+  - Scene headings grouped with first action paragraph
+  - Character names grouped with following parentheticals/dialogue
+  - `ScreenplayGroup` enum (SceneBlock, CharacterBlock, Standalone)
+- `ExportButton.svelte`: calls `export_pdf`, save dialog, writes bytes via Tauri FS plugin
+- `export_typst_markup` command for debugging/preview
+- 16 unit tests, all passing
+
+### Keymap enhancements
+- Shift+Enter: universal "new scene" shortcut from any element
+- Shift+Tab at offset 0: action → scene_heading
+- Undo/Redo: Mod-z / Shift-Mod-z
 
 ## In Progress
 
@@ -46,21 +80,15 @@ Nothing currently in progress.
 
 ## Next Up
 
-1. **Tauri commands for file I/O** — save/open `.screenplay` files via `commands/file.rs`
-2. **PDF export** — Typst integration in `screenplay/pdf.rs`, Hollywood single-column layout
-3. **Scene navigator** — collapsible left panel (Ctrl+B), click-to-jump, drag-to-reorder
+1. **Fountain export** — UTF-8 plain text for interoperability
+2. **Plain text export** — readable draft sharing
+3. **Title page** — auto-generated at PDF export from `meta` fields
 4. **Character autocomplete** — trigger after 2 chars in Character element, Unicode-aware
-5. **Title page** — auto-generated at PDF export from `meta` fields
-6. **Indian two-column PDF export** — alternate layout option at export time
-7. **Fountain export** — UTF-8 plain text for interoperability
-8. **Plain text export** — readable draft sharing
-9. **Mozhi integration** — Varnam JS for transliteration input
-10. **Font selection UI** — switch between Noto Sans Malayalam and Manjari
+5. **Mozhi integration** — Varnam JS for transliteration input
+6. **Font selection UI** — switch between Noto Sans Malayalam and Manjari
+7. **Indian two-column PDF export** — alternate layout option at export time
 
 ## Known Issues
 
-- Debug `console.log` statements in `Editor.svelte` keydown handler — remove before release
 - Default input scheme is `inscript2` (temporary) — should respect user settings once settings UI exists
 - Mozhi input scheme is a non-functional stub — selecting it silently does nothing
-- No undo/redo keyboard shortcuts wired up yet (history plugin is loaded but Cmd+Z binding not confirmed)
-- No visual feedback when Ctrl+Space toggles mode (only status bar updates, no toast/flash)

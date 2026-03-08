@@ -1,6 +1,7 @@
 <script lang="ts">
   import { open } from '@tauri-apps/plugin-dialog';
   import { documentStore } from '$lib/stores/documentStore.svelte';
+  import ExportButton from './ExportButton.svelte';
 
   // Derived display title — shows document title or "Untitled"
   let displayTitle = $derived(
@@ -39,6 +40,7 @@
     <button onclick={handleNew}>New</button>
     <button onclick={handleOpen}>Open</button>
     <button onclick={handleSave}>Save</button>
+    <ExportButton />
   </div>
 </div>
 

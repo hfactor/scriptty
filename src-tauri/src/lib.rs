@@ -10,6 +10,8 @@ pub fn run() {
   tauri::Builder::default()
     // Register the dialog plugin so the frontend can open native file dialogs.
     .plugin(tauri_plugin_dialog::init())
+    // Register the FS plugin so the frontend can write files (e.g. PDF export).
+    .plugin(tauri_plugin_fs::init())
     .setup(|app| {
       if cfg!(debug_assertions) {
         app.handle().plugin(
@@ -24,6 +26,8 @@ pub fn run() {
       commands::file::new_screenplay,
       commands::file::save_screenplay,
       commands::file::open_screenplay,
+      commands::export::export_typst_markup,
+      commands::export::export_pdf,
     ])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");
