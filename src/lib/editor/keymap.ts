@@ -1,1 +1,133 @@
 // Tab/Enter navigation keymap for screenplay element transitions
+
+import { keymap } from 'prosemirror-keymap';
+import { type Command, TextSelection, type EditorState } from 'prosemirror-state';
+import type { NodeType } from 'prosemirror-model';
+import { screenplaySchema } from './schema';
+
+/**
+ * Returns the name of the node type at the current cursor position.
+ * Looks at the parent node of the selection's anchor to find the block-level element.
+ */
+function currentNodeTypeName(state: EditorState): string {
+	// $from is the resolved position at the start of the selection.
+	// .parent gives us the block node that contains the cursor.
+	return state.selection.$from.parent.type.name;
+}
+
+/**
+ * Returns the resolved position's depth-based start position of the current block,
+ * and the node itself.
+ */
+function currentBlockRange(state: EditorState): { from: number; to: number } {
+	const $from = state.selection.$from;
+	// $from.before() gives the position right before the current block node
+	// $from.after() gives the position right after the current block node
+	const from = $from.before();
+	const to = $from.after();
+	return { from, to };
+}
+
+/**
+ * Enter key handler: creates a new block of the appropriate type below the current node
+ * and moves the cursor into it.
+ */
+const handleEnter: Command = (state, dispatch) => {
+	const typeName = currentNodeTypeName(state);
+
+	// Map from current element type to the type that Enter should create
+	const enterTargets: Record<string, NodeType | undefined> = {
+		scene_heading: screenplaySchema.nodes.action,
+		action: screenplaySchema.nodes.action,
+		character: screenplaySchema.nodes.dialogue,
+		dialogue: screenplaySchema.nodes.action,
+		parenthetical: screenplaySchema.nodes.dialogue,
+		transition: screenplaySchema.nodes.scene_heading
+	};
+
+	const targetType = enterTargets[typeName];
+	if (!targetType) {
+		// Unknown node type — let default behavior handle it
+		return false;
+	}
+
+	if (dispatch) {
+		const { to } = currentBlockRange(state);
+		// Create an empty node of the target type
+		const newNode = targetType.create();
+		// Insert the new node right after the current block
+		let tr = state.tr.insert(to, newNode);
+		// Position the cursor inside the newly created empty node.
+		// After insertion, the new node starts at `to` and its content starts at `to + 1`
+		// (because the node's opening tag occupies position `to`).
+		tr = tr.setSelection(TextSelection.create(tr.doc, to + 1));
+		tr.scrollIntoView();
+		dispatch(tr);
+	}
+
+	return true;
+};
+
+/**
+ * Tab key handler: changes the current node's type in-place (no new node created).
+ */
+const handleTab: Command = (state, dispatch) => {
+	const typeName = currentNodeTypeName(state);
+
+	// Map from current element type to what Tab should change it to
+	const tabTargets: Record<string, NodeType | undefined> = {
+		action: screenplaySchema.nodes.character,
+		dialogue: screenplaySchema.nodes.character,
+		character: screenplaySchema.nodes.action
+	};
+
+	const targetType = tabTargets[typeName];
+	if (!targetType) {
+		// scene_heading and others — do nothing, let default behavior through
+		return false;
+	}
+
+	if (dispatch) {
+		const $from = state.selection.$from;
+		// $from.before() is the position of the current block node in the document.
+		// setNodeMarkup changes the node's type without altering its content.
+		const pos = $from.before();
+		const tr = state.tr.setNodeMarkup(pos, targetType);
+		tr.scrollIntoView();
+		dispatch(tr);
+	}
+
+	return true;
+};
+
+/**
+ * Shift-Tab key handler: changes the current node's type back to action.
+ */
+const handleShiftTab: Command = (state, dispatch) => {
+	const typeName = currentNodeTypeName(state);
+
+	// Only character and dialogue respond to Shift-Tab
+	if (typeName !== 'character' && typeName !== 'dialogue') {
+		return false;
+	}
+
+	if (dispatch) {
+		const $from = state.selection.$from;
+		const pos = $from.before();
+		const tr = state.tr.setNodeMarkup(pos, screenplaySchema.nodes.action);
+		tr.scrollIntoView();
+		dispatch(tr);
+	}
+
+	return true;
+};
+
+/**
+ * The screenplay keymap plugin.
+ * Binds Enter, Tab, and Shift-Tab to screenplay-specific navigation commands.
+ */
+export const screenplayKeymap = keymap({
+	Enter: handleEnter,
+	Tab: handleTab,
+	'Shift-Tab': handleShiftTab
+});
