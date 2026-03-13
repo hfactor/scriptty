@@ -50,17 +50,29 @@ scriptty/
 │   │   ├── editor/               # ProseMirror screenplay editor
 │   │   │   ├── schema.ts         # Screenplay element schema
 │   │   │   ├── keymap.ts         # Tab/Enter navigation
+│   │   │   ├── autoUppercase.ts  # Auto-uppercase plugin for scene headings/characters
 │   │   │   └── input/            # Malayalam input engine
 │   │   │       ├── InputModeManager.ts
 │   │   │       ├── mozhi.ts
 │   │   │       ├── inscript1.ts
 │   │   │       └── inscript2.ts
 │   │   ├── stores/               # Svelte stores (app state)
+│   │   │   ├── documentStore.svelte.ts  # Document state (content, meta, settings, dirty)
+│   │   │   ├── editorStore.svelte.ts    # Shared EditorView reference
+│   │   │   └── themeStore.svelte.ts     # Dark/light theme toggle with localStorage
 │   │   └── components/           # UI components
+│   │       ├── Editor.svelte          # ProseMirror editor + status bar
+│   │       ├── TitleBar.svelte        # Top bar: actions, title, font/theme controls
+│   │       ├── SceneNavigator.svelte  # Collapsible scene list sidebar
+│   │       ├── MetadataModal.svelte   # Screenplay metadata editor
+│   │       └── ExportButton.svelte    # Standalone export button (minimal use)
 │   └── routes/                   # SvelteKit pages
+│       ├── +layout.svelte        # Global reset, CSS variables, theme system
+│       └── +page.svelte          # Main app page, keyboard shortcuts, menu events
 ├── src-tauri/                    # Rust backend
 │   ├── src/
 │   │   ├── main.rs               # Tauri entry point
+│   │   ├── lib.rs                # App builder, native menu setup
 │   │   ├── commands/             # Tauri commands (called from frontend)
 │   │   │   ├── mod.rs
 │   │   │   ├── file.rs           # save/open .screenplay files
@@ -77,7 +89,9 @@ scriptty/
 │   └── fonts/                    # Fonts served to the Svelte UI
 ├── .claude/                      # Claude Code configuration
 │   ├── CLAUDE.md                 # This file
-│   └── agents/                   # Sub-agent definitions
+│   ├── PROGRESS.md               # Development progress tracker
+│   ├── agents/                   # Sub-agent definitions
+│   └── skills/                   # Custom skills (e.g. ui-design)
 └── package.json
 ```
 
@@ -138,7 +152,7 @@ These are final. Do not suggest alternatives unless explicitly asked.
 
 ### File Format (.screenplay)
 
-JSON with three top-level keys:
+JSON with top-level keys:
 
 ```json
 {
@@ -156,17 +170,34 @@ JSON with three top-level keys:
     "font": "noto-sans-malayalam",
     "default_language": "malayalam",
     "input_scheme": "mozhi"
-  }
+  },
+  "story": {
+    "idea": "",
+    "synopsis": "",
+    "treatment": ""
+  },
+  "scene_cards": []
 }
 ```
 
 `content` is the ProseMirror document JSON serialization.
+`story` holds the three Story Panel text sections (Phase 2).
+`scene_cards` holds per-scene descriptions and shoot notes (Phase 2).
 
-### Export Formats (v1)
+### Export Formats
 
 - **PDF** — Hollywood or Indian two-column layout, chosen at export time
 - **Fountain** — UTF-8 plain text, interoperability with other tools
 - **Plain text** — readable draft sharing
+
+### Export System (Phase 2)
+
+- Single "Export" button opens an Export modal (replaces separate Hollywood/Indian buttons)
+- Checkbox sections: Title Page, Synopsis, Treatment, Screenplay, Scene Cards
+- Format radio: Hollywood (single column) or Indian (two column)
+- Combined PDF output — selected sections concatenated in order
+- Synopsis/Treatment PDF: centered heading, prose layout, 12pt
+- Scene Cards PDF: table/card layout per scene for set use
 
 ### Title Page
 
@@ -182,6 +213,32 @@ JSON with three top-level keys:
 - Scene numbers derived from document order — never stored
 - Drag to rearrange scenes triggers auto-renumber
 - Click to jump to scene
+
+### Theme System
+
+- Dark mode (default) and light mode — both first-class
+- CSS custom properties defined in `+layout.svelte` under `[data-theme]` selectors
+- Theme state managed by `themeStore.svelte.ts` with `$state` rune
+- Persisted to `localStorage` under key `scriptty-theme`
+- Toggle button in TitleBar right group
+- Warm Kerala-rooted palette: teal accent, cream page, amber dirty indicator
+
+### Story Panel (Phase 2)
+
+- Collapsible left panel tab alongside Scene Navigator
+- Three sections: Idea (logline), Synopsis, Treatment (detailed story)
+- Tab switcher at top of left panel: Scenes | Story
+- Ctrl+Shift+B opens Story Panel (Ctrl+B stays for Scene Navigator)
+- All sections support Malayalam input (Ctrl+Space toggle applies)
+- Data stored in `story` field of `.screenplay` file
+
+### Scene Cards (Phase 2)
+
+- Per-scene breakdown for shoot planning
+- Auto-populated: scene number, heading, location, time, characters, page estimate
+- Manually editable: scene description, shoot notes
+- Grid view accessible via Cmd+Shift+K, replaces editor as full-panel view
+- Data stored in `scene_cards` field of `.screenplay` file
 
 ### Character Autocomplete
 
@@ -264,13 +321,21 @@ This means:
 
 ---
 
-## Deferred to Phase 2 (Do Not Implement in v1)
+## Phase 2 Features (Current)
+
+Build in this order to minimize dependencies:
+
+1. **Help/About menu** — Add Help menu to macOS menu bar, About modal with app info
+2. **Story Panel** — Idea/Synopsis/Treatment sections in collapsible left panel tab
+3. **Export modal** — Combined export with section checkboxes, replaces separate buttons
+4. **Scene Cards** — Per-scene breakdown grid view for shoot planning
+
+## Deferred (Do Not Implement Yet)
 
 - Revision tracking / colored revision pages
 - FDX (Final Draft XML) export
 - Courier font / Hollywood submission mode
 - Rachana font / traditional Malayalam orthography
-- Beat board / scene cards
 - Statistics report (character dialogue count, scene lengths)
 - Import from Final Draft / Fountain
 - Real-time collaboration
