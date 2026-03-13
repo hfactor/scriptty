@@ -3,9 +3,6 @@
   import { documentStore } from '$lib/stores/documentStore.svelte';
   import { editorStore } from '$lib/stores/editorStore.svelte';
 
-  // Props: whether the panel is open
-  let { isOpen }: { isOpen: boolean } = $props();
-
   // Scene heading extracted from ProseMirror JSON content
   interface SceneEntry {
     number: number;
@@ -79,62 +76,31 @@
   }
 </script>
 
-<aside class="scene-navigator" class:open={isOpen}>
-  <div class="navigator-content">
-    <h3 class="navigator-title">Scenes</h3>
-    {#if scenes.length === 0}
-      <p class="empty-message">No scenes yet</p>
-    {:else}
-      <ul class="scene-list">
-        {#each scenes as scene}
-          <li>
-            <button
-              class="scene-item"
-              onclick={() => scrollToScene(scene.index)}
-            >
-              <span class="scene-number">{scene.number}.</span>
-              <span class="scene-text">{scene.text.toUpperCase()}</span>
-            </button>
-          </li>
-        {/each}
-      </ul>
-    {/if}
-  </div>
-</aside>
+<div class="navigator-content">
+  {#if scenes.length === 0}
+    <p class="empty-message">No scenes yet</p>
+  {:else}
+    <ul class="scene-list">
+      {#each scenes as scene}
+        <li>
+          <button
+            class="scene-item"
+            onclick={() => scrollToScene(scene.index)}
+          >
+            <span class="scene-number">{scene.number}.</span>
+            <span class="scene-text">{scene.text.toUpperCase()}</span>
+          </button>
+        </li>
+      {/each}
+    </ul>
+  {/if}
+</div>
 
 <style>
-  .scene-navigator {
-    width: 0;
-    min-width: 0;
-    overflow: hidden;
-    background: var(--surface-base);
-    border-right: 1px solid var(--border-subtle);
-    transition: width 200ms cubic-bezier(0.4, 0, 0.2, 1),
-                min-width 200ms cubic-bezier(0.4, 0, 0.2, 1);
-    flex-shrink: 0;
-  }
-
-  .scene-navigator.open {
-    width: 220px;
-    min-width: 220px;
-  }
-
   .navigator-content {
-    width: 220px;
     padding: 12px;
     overflow-y: auto;
     height: 100%;
-  }
-
-  .navigator-title {
-    font-family: system-ui, -apple-system, sans-serif;
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    margin: 0 0 12px 0;
-    padding: 0 4px;
   }
 
   .empty-message {

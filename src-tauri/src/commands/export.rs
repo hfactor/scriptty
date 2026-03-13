@@ -7,6 +7,7 @@
 use crate::fonts;
 use crate::screenplay::document::ScreenplayDocument;
 use crate::screenplay::pdf;
+use serde::Deserialize;
 
 /// Generates Typst markup from a screenplay document.
 ///
@@ -144,4 +145,136 @@ pub fn export_pdf_indian(document: ScreenplayDocument) -> Result<Vec<u8>, String
     // Call the Indian two-column PDF generator instead of the Hollywood one.
     // Pass `&document.meta` so the Indian format PDF also includes a title page.
     pdf::generate_pdf_indian(&document.content, font_name, &font_data, &document.meta)
+}
+
+/// Options for the combined PDF export — specifies which sections to include
+/// and which screenplay format to use.
+///
+/// This struct is deserialized from the frontend's JSON payload. Each boolean
+/// field corresponds to a checkbox in the Export modal.
+#[derive(Deserialize)]
+pub struct ExportOptions {
+    /// Include the title page (from metadata)
+    pub include_title_page: bool,
+    /// Include the synopsis section (from story.synopsis)
+    pub include_synopsis: bool,
+    /// Include the treatment section (from story.treatment)
+    pub include_treatment: bool,
+    /// Include the screenplay content
+    pub include_screenplay: bool,
+    /// Include scene cards breakdown
+    pub include_scene_cards: bool,
+    /// Screenplay format: "hollywood" or "indian"
+    pub format: String,
+    /// Pre-computed scene cards data as JSON (auto-populated fields computed by frontend)
+    pub scene_cards_data: serde_json::Value,
+}
+
+/// Combined PDF export — generates a single PDF with user-selected sections.
+///
+/// The frontend sends the document and an ExportOptions struct specifying which
+/// sections to include. The Typst markup for each section is concatenated into
+/// a single document and compiled to PDF.
+///
+/// # Arguments
+/// * `document` — The full screenplay document
+/// * `options` — Export options specifying which sections to include
+///
+/// # Returns
+/// * `Ok(Vec<u8>)` — The combined PDF bytes
+/// * `Err(String)` — Error if PDF generation fails
+#[tauri::command]
+pub fn export_combined_pdf(
+    document: ScreenplayDocument,
+    options: ExportOptions,
+) -> Result<Vec<u8>, String> {
+    let bundled = fonts::bundled_fonts();
+
+    // Resolve the font — same logic as the other export commands
+    let (font_name, font) = match document.settings.font.as_str() {
+        "manjari" => (
+            "Manjari",
+            bundled.iter().find(|f| f.name == "Manjari"),
+        ),
+        _ => (
+            "Noto Sans Malayalam",
+            bundled.iter().find(|f| f.name == "Noto Sans Malayalam"),
+        ),
+    };
+
+    let font = font.ok_or_else(|| "Selected font not found in bundled fonts".to_string())?;
+    let font_data = pdf::FontData {
+        regular: font.regular,
+        bold: font.bold,
+    };
+
+    // Build the combined Typst markup by conditionally including each section.
+    // We start with the screenplay markup (which includes the preamble/page setup),
+    // then append additional sections as needed.
+
+    let mut markup = String::new();
+
+    // If we're including the screenplay, use the appropriate format generator
+    // which already includes the Typst preamble and optionally the title page.
+    if options.include_screenplay {
+        // Create a meta that may or may not include title page based on the option
+        let meta_for_export = if options.include_title_page {
+            document.meta.clone()
+        } else {
+            // Empty meta = no title page
+            Default::default()
+        };
+
+        markup = if options.format == "indian" {
+            pdf::generate_indian_markup(&document.content, font_name, &meta_for_export)
+        } else {
+            pdf::generate_typst_markup(&document.content, font_name, &meta_for_export)
+        };
+    } else {
+        // No screenplay — we still need a Typst preamble for the prose sections.
+        // Generate a minimal preamble with just page setup and font.
+        markup.push_str(&format!(
+            r#"#set page(paper: "a4", margin: (top: 2.5cm, bottom: 2.5cm, left: 2.5cm, right: 2.5cm))
+#set text(font: "{}", size: 12pt)
+#set par(leading: 0.8em)
+"#,
+            font_name
+        ));
+
+        // If title page is requested without screenplay, generate a standalone title page
+        if options.include_title_page && !document.meta.title.is_empty() {
+            markup.push_str(&pdf::generate_title_page_markup(&document.meta));
+        }
+    }
+
+    // Append synopsis section if requested
+    if options.include_synopsis && !document.story.synopsis.is_empty() {
+        markup.push_str(&pdf::generate_prose_section_markup(
+            "SYNOPSIS",
+            &document.story.synopsis,
+            font_name,
+            &document.meta.author,
+        ));
+    }
+
+    // Append treatment section if requested
+    if options.include_treatment && !document.story.treatment.is_empty() {
+        markup.push_str(&pdf::generate_prose_section_markup(
+            "TREATMENT",
+            &document.story.treatment,
+            font_name,
+            &document.meta.author,
+        ));
+    }
+
+    // Append scene cards section if requested
+    if options.include_scene_cards {
+        markup.push_str(&pdf::generate_scene_cards_markup(
+            &options.scene_cards_data,
+            font_name,
+        ));
+    }
+
+    // Compile the combined markup to PDF
+    pdf::compile_markup_to_pdf(&markup, &font_data)
 }

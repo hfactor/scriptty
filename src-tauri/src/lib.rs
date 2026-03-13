@@ -17,6 +17,8 @@ pub fn run() {
     .plugin(tauri_plugin_dialog::init())
     // Register the FS plugin so the frontend can write files (e.g. PDF export).
     .plugin(tauri_plugin_fs::init())
+    // Register the opener plugin so we can open URLs in the default browser.
+    .plugin(tauri_plugin_opener::init())
     .setup(|app| {
       if cfg!(debug_assertions) {
         app.handle().plugin(
@@ -27,9 +29,9 @@ pub fn run() {
       }
 
       // --- Native App Menu ---
-      // Build a standard File + Edit menu bar. Custom items (New, Open, Save, Save As)
-      // emit events to the frontend. Predefined items (Undo, Redo, Cut, Copy, Paste,
-      // Select All, Quit) are handled automatically by the OS — no event needed.
+      // Build a standard File + Edit + Help menu bar. Custom items (New, Open, Save,
+      // Save As, About, etc.) emit events to the frontend. Predefined items (Undo, Redo,
+      // Cut, Copy, Paste, Select All, Quit) are handled automatically by the OS.
 
       // File menu with custom items for document operations
       let file_menu = Submenu::with_items(
@@ -66,8 +68,21 @@ pub fn run() {
         ],
       )?;
 
+      // Help menu with About dialog and external links
+      let help_menu = Submenu::with_items(
+        app,
+        "Help",
+        true,
+        &[
+          &MenuItem::with_id(app, "about", "About Scriptty", true, None::<&str>)?,
+          &PredefinedMenuItem::separator(app)?,
+          &MenuItem::with_id(app, "report-issue", "Report an Issue", true, None::<&str>)?,
+          &MenuItem::with_id(app, "view-github", "View on GitHub", true, None::<&str>)?,
+        ],
+      )?;
+
       // Assemble the menu bar from the submenus and apply it to the app
-      let menu = Menu::with_items(app, &[&file_menu, &edit_menu])?;
+      let menu = Menu::with_items(app, &[&file_menu, &edit_menu, &help_menu])?;
       app.set_menu(menu)?;
 
       // Handle clicks on our custom menu items by emitting events to the frontend.
@@ -83,6 +98,17 @@ pub fn run() {
           "open" => { let _ = app.emit("menu-open", ()); }
           "save" => { let _ = app.emit("menu-save", ()); }
           "save-as" => { let _ = app.emit("menu-save-as", ()); }
+          "about" => { let _ = app.emit("menu-about", ()); }
+          // External links — open in the default browser using the opener plugin.
+          // `tauri_plugin_opener::OpenerExt` provides the `.opener()` method on AppHandle.
+          "report-issue" => {
+            use tauri_plugin_opener::OpenerExt;
+            let _ = app.opener().open_url("https://github.com/stultus/scriptty/issues", None::<&str>);
+          }
+          "view-github" => {
+            use tauri_plugin_opener::OpenerExt;
+            let _ = app.opener().open_url("https://github.com/stultus/scriptty", None::<&str>);
+          }
           _ => {} // Ignore predefined items — the OS handles those
         }
       });
@@ -96,6 +122,7 @@ pub fn run() {
       commands::export::export_typst_markup,
       commands::export::export_pdf,
       commands::export::export_pdf_indian,
+      commands::export::export_combined_pdf,
     ])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");

@@ -1,12 +1,12 @@
 <script lang="ts">
-  import { invoke } from '@tauri-apps/api/core';
-  import { open, save } from '@tauri-apps/plugin-dialog';
-  import { writeFile } from '@tauri-apps/plugin-fs';
+  import { open } from '@tauri-apps/plugin-dialog';
   import { documentStore } from '$lib/stores/documentStore.svelte';
   import { themeStore } from '$lib/stores/themeStore.svelte';
   import MetadataModal from './MetadataModal.svelte';
+  import ExportModal from './ExportModal.svelte';
 
   let showMetadata = $state(false);
+  let showExport = $state(false);
 
   // Derived display title — shows document title or "Untitled"
   let displayTitle = $derived(
@@ -23,6 +23,7 @@
   }
 
   async function handleNew() {
+    if (!(await documentStore.confirmIfDirty())) return;
     await documentStore.newDocument();
   }
 
@@ -31,6 +32,7 @@
   }
 
   async function handleOpen() {
+    if (!(await documentStore.confirmIfDirty())) return;
     const path = await open({
       multiple: false,
       filters: [{ name: 'Screenplay', extensions: ['screenplay'] }]
@@ -40,38 +42,6 @@
     }
   }
 
-  /** Shared PDF export helper — calls the given Rust command and saves the result */
-  async function exportPdf(command: string, defaultName: string) {
-    if (!documentStore.document) {
-      showStatus('No document to export');
-      return;
-    }
-    try {
-      showStatus('Generating PDF...');
-      const bytes = await invoke<number[]>(command, { document: documentStore.document });
-      const path = await save({
-        defaultPath: defaultName,
-        filters: [{ name: 'PDF', extensions: ['pdf'] }]
-      });
-      if (!path) {
-        showStatus('');
-        return;
-      }
-      await writeFile(path, new Uint8Array(bytes));
-      showStatus('PDF exported');
-    } catch (e) {
-      console.error('[TitleBar] Export failed:', e);
-      showStatus('Export failed');
-    }
-  }
-
-  async function handleExportHollywood() {
-    await exportPdf('export_pdf', 'screenplay.pdf');
-  }
-
-  async function handleExportIndian() {
-    await exportPdf('export_pdf_indian', 'screenplay_indian.pdf');
-  }
 </script>
 
 <div class="title-bar">
@@ -115,13 +85,13 @@
 
     <span class="separator"></span>
 
-    <button class="btn-ghost" onclick={handleExportHollywood}>Export</button>
-    <button class="btn-ghost" onclick={handleExportIndian}>Export Indian</button>
+    <button class="btn-ghost" onclick={() => { showExport = true; }}>Export</button>
     <button class="btn-primary" onclick={handleSave}>Save</button>
   </div>
 </div>
 
 <MetadataModal bind:open={showMetadata} />
+<ExportModal bind:open={showExport} />
 
 <style>
   .title-bar {

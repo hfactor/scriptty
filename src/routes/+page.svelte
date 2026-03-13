@@ -1,14 +1,19 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { listen } from '@tauri-apps/api/event';
+  import { getCurrentWindow } from '@tauri-apps/api/window';
   import { open } from '@tauri-apps/plugin-dialog';
   import Editor from '$lib/components/Editor.svelte';
   import TitleBar from '$lib/components/TitleBar.svelte';
-  import SceneNavigator from '$lib/components/SceneNavigator.svelte';
+  import LeftPanel from '$lib/components/LeftPanel.svelte';
+  import SceneCardsView from '$lib/components/SceneCardsView.svelte';
+  import AboutModal from '$lib/components/AboutModal.svelte';
   import { documentStore } from '$lib/stores/documentStore.svelte';
   import { themeStore } from '$lib/stores/themeStore.svelte';
 
-  let navigatorOpen = $state(false);
+  let panelOpen = $state(false);
+  let showAbout = $state(false);
+  let showSceneCards = $state(false);
 
   // Module-level guard — prevents newDocument() from firing again on HMR re-mount
   let appInitialized = false;
@@ -36,6 +41,12 @@
         documentStore.saveAsDialog();
         return;
       }
+      // Cmd+Shift+K — Toggle scene cards view
+      if ((event.metaKey || event.ctrlKey) && event.shiftKey && event.key === 'k') {
+        event.preventDefault();
+        showSceneCards = !showSceneCards;
+        return;
+      }
       // Cmd+S (Mac) / Ctrl+S (Windows/Linux)
       if ((event.metaKey || event.ctrlKey) && event.key === 's') {
         event.preventDefault();
@@ -44,19 +55,22 @@
       // Cmd+O (Mac) / Ctrl+O (Windows/Linux)
       if ((event.metaKey || event.ctrlKey) && event.key === 'o') {
         event.preventDefault();
-        open({
-          multiple: false,
-          filters: [{ name: 'Screenplay', extensions: ['screenplay'] }]
-        }).then((path) => {
-          if (typeof path === 'string') {
-            documentStore.openDocument(path);
-          }
+        documentStore.confirmIfDirty().then((proceed) => {
+          if (!proceed) return;
+          open({
+            multiple: false,
+            filters: [{ name: 'Screenplay', extensions: ['screenplay'] }]
+          }).then((path) => {
+            if (typeof path === 'string') {
+              documentStore.openDocument(path);
+            }
+          });
         });
       }
-      // Ctrl+B (Mac: Cmd+B) toggles scene navigator
+      // Ctrl+B (Mac: Cmd+B) toggles left panel
       if ((event.metaKey || event.ctrlKey) && event.key === 'b') {
         event.preventDefault();
-        navigatorOpen = !navigatorOpen;
+        panelOpen = !panelOpen;
       }
     }
 
@@ -65,11 +79,13 @@
     // Listen for native menu events emitted from the Rust backend.
     // Each custom menu item (New, Open, Save, Save As) emits an event
     // that we handle here to call the appropriate store method.
-    const unlistenNew = await listen('menu-new', () => {
-      documentStore.newDocument();
+    const unlistenNew = await listen('menu-new', async () => {
+      if (!(await documentStore.confirmIfDirty())) return;
+      await documentStore.newDocument();
     });
 
     const unlistenOpen = await listen('menu-open', async () => {
+      if (!(await documentStore.confirmIfDirty())) return;
       const path = await open({
         multiple: false,
         filters: [{ name: 'Screenplay', extensions: ['screenplay'] }]
@@ -87,12 +103,25 @@
       documentStore.saveAsDialog();
     });
 
+    const unlistenAbout = await listen('menu-about', () => {
+      showAbout = true;
+    });
+
+    // Intercept window close to prompt for unsaved changes
+    const unlistenClose = await getCurrentWindow().onCloseRequested(async (event) => {
+      if (!(await documentStore.confirmIfDirty())) {
+        event.preventDefault();
+      }
+    });
+
     return () => {
       window.removeEventListener('keydown', handleGlobalKeydown);
       unlistenNew();
       unlistenOpen();
       unlistenSave();
       unlistenSaveAs();
+      unlistenAbout();
+      unlistenClose();
     };
   });
 </script>
@@ -100,10 +129,16 @@
 <main>
   <TitleBar />
   <div class="workspace">
-    <SceneNavigator isOpen={navigatorOpen} />
-    <Editor />
+    {#if showSceneCards}
+      <SceneCardsView onClose={() => { showSceneCards = false; }} />
+    {:else}
+      <LeftPanel isOpen={panelOpen} />
+      <Editor />
+    {/if}
   </div>
 </main>
+
+<AboutModal bind:open={showAbout} />
 
 <style>
   main {

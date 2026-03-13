@@ -244,7 +244,7 @@ fn escape_typst(text: &str) -> String {
 ///
 /// Returns an empty string if the title is blank, so it's safe to always call
 /// this and prepend the result — it's a no-op when there's no title.
-fn generate_title_page_markup(meta: &ScreenplayMeta) -> String {
+pub fn generate_title_page_markup(meta: &ScreenplayMeta) -> String {
     // `trim()` removes leading/trailing whitespace. `is_empty()` checks for "".
     // If the title is blank, skip the title page entirely.
     if meta.title.trim().is_empty() {
@@ -1064,6 +1064,158 @@ pub fn generate_pdf(
     // Render the compiled document to PDF bytes in memory.
     // `PdfOptions::default()` uses standard PDF settings.
     // No temp files are written — everything stays in memory.
+    let pdf_bytes = typst_pdf::pdf(&document, &typst_pdf::PdfOptions::default())
+        .map_err(|diagnostics| {
+            let messages: Vec<String> = diagnostics
+                .iter()
+                .map(|d| format!("{:?}", d))
+                .collect();
+            format!("PDF rendering errors: {}", messages.join("; "))
+        })?;
+
+    Ok(pdf_bytes)
+}
+
+/// Generates a Typst markup section for a prose text block (synopsis or treatment).
+///
+/// Creates a Typst page with the section heading centered and bold,
+/// followed by the prose body text in a readable layout.
+///
+/// # Arguments
+/// * `heading` — The section title (e.g. "SYNOPSIS" or "TREATMENT")
+/// * `body` — The prose text content
+/// * `font_name` — The font family name for rendering
+/// * `author` — Optional author name shown below the heading
+pub fn generate_prose_section_markup(heading: &str, body: &str, _font_name: &str, author: &str) -> String {
+    let escaped_heading = escape_typst(heading);
+    let escaped_body = escape_typst(body);
+    let escaped_author = escape_typst(author);
+
+    let mut markup = String::new();
+
+    // Page break to start the section on a new page
+    markup.push_str("#pagebreak()\n\n");
+
+    // Centered heading
+    markup.push_str(&format!(
+        r#"#align(center)[
+  #text(size: 16pt, weight: "bold")[{}]
+]
+"#,
+        escaped_heading
+    ));
+
+    // Author name below heading (if provided)
+    if !author.is_empty() {
+        markup.push_str(&format!(
+            r#"
+#align(center)[
+  #text(size: 12pt)[{}]
+]
+"#,
+            escaped_author
+        ));
+    }
+
+    markup.push_str("\n#v(1cm)\n\n");
+
+    // Body text — split by newlines to preserve paragraph breaks.
+    // Each paragraph gets its own Typst paragraph with spacing.
+    for paragraph in escaped_body.split('\n') {
+        let trimmed = paragraph.trim();
+        if trimmed.is_empty() {
+            markup.push_str("#v(0.5em)\n");
+        } else {
+            markup.push_str(&format!("{}\n\n", trimmed));
+        }
+    }
+
+    markup
+}
+
+/// Generates a Typst markup section for the scene cards breakdown.
+///
+/// Creates a formatted table of scene information for set use.
+///
+/// # Arguments
+/// * `cards_data` — JSON array of scene card objects with auto-populated and manual fields
+/// * `font_name` — The font family name for rendering
+pub fn generate_scene_cards_markup(cards_data: &Value, _font_name: &str) -> String {
+    let mut markup = String::new();
+
+    markup.push_str("#pagebreak()\n\n");
+    markup.push_str(r#"#align(center)[
+  #text(size: 16pt, weight: "bold")[SCENE BREAKDOWN]
+]
+
+#v(1cm)
+
+"#);
+
+    // cards_data is expected to be a JSON array of objects:
+    // [{ scene_number, heading, location, time, characters, page_estimate, description, shoot_notes }]
+    if let Some(cards) = cards_data.as_array() {
+        for card in cards {
+            let scene_num = card.get("scene_number").and_then(|v| v.as_u64()).unwrap_or(0);
+            let heading = card.get("heading").and_then(|v| v.as_str()).unwrap_or("");
+            let location = card.get("location").and_then(|v| v.as_str()).unwrap_or("");
+            let time = card.get("time").and_then(|v| v.as_str()).unwrap_or("");
+            let characters = card.get("characters").and_then(|v| v.as_str()).unwrap_or("");
+            let description = card.get("description").and_then(|v| v.as_str()).unwrap_or("");
+            let shoot_notes = card.get("shoot_notes").and_then(|v| v.as_str()).unwrap_or("");
+
+            markup.push_str(&format!(
+                r#"#block(stroke: 0.5pt + luma(180), radius: 4pt, inset: 12pt, width: 100%)[
+  #text(weight: "bold")[{}. {}]
+  #v(4pt)
+  *Location:* {} #h(1cm) *Time:* {}
+  #linebreak()
+  *Characters:* {}
+"#,
+                scene_num,
+                escape_typst(heading),
+                escape_typst(location),
+                escape_typst(time),
+                escape_typst(characters),
+            ));
+
+            if !description.is_empty() {
+                markup.push_str(&format!(
+                    "  #v(4pt)\n  _{}_\n",
+                    escape_typst(description)
+                ));
+            }
+            if !shoot_notes.is_empty() {
+                markup.push_str(&format!(
+                    "  #v(4pt)\n  #text(size: 10pt, fill: luma(100))[Notes: {}]\n",
+                    escape_typst(shoot_notes)
+                ));
+            }
+
+            markup.push_str("]\n#v(8pt)\n\n");
+        }
+    }
+
+    markup
+}
+
+/// Compiles a complete Typst markup string (with preamble already included)
+/// into PDF bytes. Shared helper used by the combined export command.
+pub fn compile_markup_to_pdf(markup: &str, font_data: &FontData) -> Result<Vec<u8>, String> {
+    let font_bytes: Vec<&'static [u8]> = vec![font_data.regular, font_data.bold];
+    let world = ScreenplayWorld::new(markup.to_string(), &font_bytes)
+        .map_err(|e| format!("Failed to initialize Typst world: {}", e))?;
+
+    let document = typst::compile::<PagedDocument>(&world)
+        .output
+        .map_err(|diagnostics| {
+            let messages: Vec<String> = diagnostics
+                .iter()
+                .map(|d| format!("{:?}", d))
+                .collect();
+            format!("Typst compilation errors: {}", messages.join("; "))
+        })?;
+
     let pdf_bytes = typst_pdf::pdf(&document, &typst_pdf::PdfOptions::default())
         .map_err(|diagnostics| {
             let messages: Vec<String> = diagnostics

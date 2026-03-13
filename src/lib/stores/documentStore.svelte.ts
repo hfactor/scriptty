@@ -2,7 +2,8 @@
 // Uses $state runes for reactivity — this requires a .svelte.ts file extension.
 
 import { invoke } from '@tauri-apps/api/core';
-import { save } from '@tauri-apps/plugin-dialog';
+import { save, message } from '@tauri-apps/plugin-dialog';
+import type { MessageDialogResult } from '@tauri-apps/plugin-dialog';
 
 /** TypeScript interface matching the Rust ScreenplayDocument struct */
 export interface ScreenplayMeta {
@@ -21,10 +22,24 @@ export interface ScreenplaySettings {
   input_scheme: string;
 }
 
+export interface ScreenplayStory {
+  idea: string;
+  synopsis: string;
+  treatment: string;
+}
+
+export interface SceneCard {
+  scene_index: number;
+  description: string;
+  shoot_notes: string;
+}
+
 export interface ScreenplayDocument {
   content: unknown;
   meta: ScreenplayMeta;
   settings: ScreenplaySettings;
+  story: ScreenplayStory;
+  scene_cards: SceneCard[];
 }
 
 /** Reactive document store — tracks the open file, its path, and dirty state */
@@ -136,6 +151,28 @@ class DocumentStore {
   /** Mark the document as having unsaved changes */
   markDirty(): void {
     this.isDirty = true;
+  }
+
+  /**
+   * If the document has unsaved changes, prompt the user to Save / Don't Save / Cancel.
+   * Returns true if it's safe to proceed (saved or discarded), false if cancelled.
+   */
+  async confirmIfDirty(): Promise<boolean> {
+    if (!this.isDirty) return true;
+
+    const result: MessageDialogResult = await message(
+      'You have unsaved changes. Do you want to save before continuing?',
+      {
+        title: 'Unsaved Changes',
+        kind: 'warning',
+        buttons: { yes: 'Save', no: "Don't Save", cancel: 'Cancel' },
+      }
+    );
+
+    if (result === 'Cancel') return false;
+    if (result === 'Save') await this.saveWithDialog();
+    // 'Don\'t Save' — proceed without saving
+    return true;
   }
 
   /** Update the document's content without marking dirty.

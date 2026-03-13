@@ -14,6 +14,8 @@ pub fn new_screenplay() -> Result<ScreenplayDocument, String> {
         content: serde_json::Value::Null,
         meta: Default::default(),       // Uses the Default impl we defined
         settings: Default::default(),
+        story: Default::default(),      // Empty story sections
+        scene_cards: Vec::new(),        // No scene cards initially
     })
 }
 

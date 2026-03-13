@@ -65,6 +65,46 @@ impl Default for ScreenplaySettings {
     }
 }
 
+/// Story development sections — Idea, Synopsis, and Treatment.
+///
+/// Stored in the `"story"` key of a `.screenplay` file.
+/// These are plain text sections the writer uses to develop the story
+/// before and during scripting.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ScreenplayStory {
+    /// One to three lines — the core premise / elevator pitch
+    pub idea: String,
+    /// A few paragraphs — the full story in prose (300–800 words typical)
+    pub synopsis: String,
+    /// Full narrative prose — scene-by-scene treatment (2,000–10,000+ words)
+    pub treatment: String,
+}
+
+impl Default for ScreenplayStory {
+    fn default() -> Self {
+        Self {
+            idea: String::new(),
+            synopsis: String::new(),
+            treatment: String::new(),
+        }
+    }
+}
+
+/// Per-scene breakdown card for shoot planning.
+///
+/// Stored in the `"scene_cards"` array of a `.screenplay` file.
+/// Auto-populated fields (location, time, characters) are derived at runtime
+/// from the screenplay content — only manually-written fields are stored.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SceneCard {
+    /// Matches scene position in the script (0-based index)
+    pub scene_index: usize,
+    /// Short scene description written by the writer (2–4 lines)
+    pub description: String,
+    /// Shoot notes — equipment, stunts, VFX flags, location notes
+    pub shoot_notes: String,
+}
+
 /// The complete `.screenplay` document — the top-level JSON structure.
 ///
 /// The `content` field holds the ProseMirror editor state as arbitrary JSON.
@@ -79,4 +119,12 @@ pub struct ScreenplayDocument {
     pub meta: ScreenplayMeta,
     /// User-level settings (font, language, input scheme)
     pub settings: ScreenplaySettings,
+    /// Story development sections (idea, synopsis, treatment).
+    /// Uses `default` so old .screenplay files without this field still load.
+    #[serde(default)]
+    pub story: ScreenplayStory,
+    /// Per-scene breakdown cards (description, shoot notes).
+    /// Uses `default` so old .screenplay files without this field still load.
+    #[serde(default)]
+    pub scene_cards: Vec<SceneCard>,
 }

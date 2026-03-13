@@ -9,7 +9,9 @@
     "core:default",
     "dialog:allow-save",
     "dialog:allow-open",
+    "dialog:allow-message",
     "fs:allow-write-file",
-    "fs:allow-write-text-file"
+    "fs:allow-write-text-file",
+    "opener:allow-open-url"
   ]
 }
