@@ -3,6 +3,7 @@
   import { open, save } from '@tauri-apps/plugin-dialog';
   import { writeFile } from '@tauri-apps/plugin-fs';
   import { documentStore } from '$lib/stores/documentStore.svelte';
+  import { themeStore } from '$lib/stores/themeStore.svelte';
   import MetadataModal from './MetadataModal.svelte';
 
   let showMetadata = $state(false);
@@ -26,7 +27,6 @@
   }
 
   async function handleSave() {
-    console.log('[TitleBar] Save clicked');
     await documentStore.saveWithDialog();
   }
 
@@ -35,7 +35,6 @@
       multiple: false,
       filters: [{ name: 'Screenplay', extensions: ['screenplay'] }]
     });
-    // open() returns string | string[] | null depending on `multiple`
     if (typeof path === 'string') {
       await documentStore.openDocument(path);
     }
@@ -55,7 +54,7 @@
         filters: [{ name: 'PDF', extensions: ['pdf'] }]
       });
       if (!path) {
-        showStatus(''); // User cancelled
+        showStatus('');
         return;
       }
       await writeFile(path, new Uint8Array(bytes));
@@ -76,34 +75,49 @@
 </script>
 
 <div class="title-bar">
-  <div class="title-section">
+  <div class="btn-group left">
+    <button class="btn-ghost" onclick={handleNew}>New</button>
+    <button class="btn-ghost" onclick={() => { showMetadata = true; }}>Meta</button>
+    <button class="btn-ghost" onclick={handleOpen}>Open</button>
+  </div>
+
+  <div class="title-zone">
     <span class="title">{displayTitle}</span>
     {#if documentStore.isDirty}
-      <span class="dirty-indicator" title="Unsaved changes"></span>
+      <span class="dirty-dot" title="Unsaved changes"></span>
     {/if}
-  </div>
-  <div class="font-selector">
-    <button
-      class="font-btn"
-      class:active={documentStore.currentFont === 'noto-sans-malayalam'}
-      onclick={() => documentStore.setFont('noto-sans-malayalam')}
-    >Noto</button>
-    <button
-      class="font-btn"
-      class:active={documentStore.currentFont === 'manjari'}
-      onclick={() => documentStore.setFont('manjari')}
-    >Manjari</button>
-  </div>
-  <div class="actions">
-    <button onclick={handleNew}>New</button>
-    <button onclick={() => { showMetadata = true; }}>Meta</button>
-    <button onclick={handleOpen}>Open</button>
-    <button onclick={handleSave}>Save</button>
-    <button onclick={handleExportHollywood}>Export (Hollywood)</button>
-    <button onclick={handleExportIndian}>Export (Indian)</button>
     {#if statusMessage}
       <span class="status-message">{statusMessage}</span>
     {/if}
+  </div>
+
+  <div class="btn-group right">
+    <!-- Theme toggle -->
+    <button class="btn-icon" onclick={() => themeStore.toggle()} title={themeStore.isDark ? 'Switch to light mode' : 'Switch to dark mode'}>
+      {themeStore.isDark ? 'Light' : 'Dark'}
+    </button>
+
+    <span class="separator"></span>
+
+    <!-- Font selector — segmented control -->
+    <div class="segmented">
+      <button
+        class="segmented-item"
+        class:active={documentStore.currentFont === 'noto-sans-malayalam'}
+        onclick={() => documentStore.setFont('noto-sans-malayalam')}
+      >Noto</button>
+      <button
+        class="segmented-item"
+        class:active={documentStore.currentFont === 'manjari'}
+        onclick={() => documentStore.setFont('manjari')}
+      >Manjari</button>
+    </div>
+
+    <span class="separator"></span>
+
+    <button class="btn-ghost" onclick={handleExportHollywood}>Export</button>
+    <button class="btn-ghost" onclick={handleExportIndian}>Export Indian</button>
+    <button class="btn-primary" onclick={handleSave}>Save</button>
   </div>
 </div>
 
@@ -114,83 +128,143 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 8px 16px;
-    background: #222;
-    border-bottom: 1px solid #333;
-    font-family: system-ui, sans-serif;
+    height: 40px;
+    padding: 0 12px;
+    background: var(--surface-elevated);
+    border-bottom: 1px solid var(--border-subtle);
+    font-family: system-ui, -apple-system, sans-serif;
     user-select: none;
+    flex-shrink: 0;
   }
 
-  .title-section {
+  .btn-group {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    -webkit-app-region: no-drag;
+  }
+
+  .title-zone {
     display: flex;
     align-items: center;
     gap: 8px;
     -webkit-app-region: drag;
+    flex: 1;
+    justify-content: center;
+    min-width: 0;
   }
 
   .title {
-    color: #ccc;
+    color: var(--text-secondary);
     font-size: 13px;
     font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
-  .dirty-indicator {
-    width: 8px;
-    height: 8px;
+  .dirty-dot {
+    width: 6px;
+    height: 6px;
     border-radius: 50%;
-    background: #f5a623;
-  }
-
-  .actions {
-    display: flex;
-    gap: 6px;
-    -webkit-app-region: no-drag;
-  }
-
-  .actions button {
-    padding: 4px 12px;
-    font-size: 12px;
-    color: #ccc;
-    background: #333;
-    border: 1px solid #444;
-    border-radius: 4px;
-    cursor: pointer;
-  }
-
-  .actions button:hover {
-    background: #444;
-    color: #fff;
-  }
-
-  .font-selector {
-    display: flex;
-    gap: 2px;
-  }
-
-  .font-btn {
-    padding: 3px 8px;
-    font-size: 11px;
-    color: #888;
-    background: none;
-    border: 1px solid transparent;
-    border-radius: 3px;
-    cursor: pointer;
-    font-family: system-ui, sans-serif;
-  }
-
-  .font-btn:hover {
-    color: #ccc;
-    background: rgba(255, 255, 255, 0.08);
-  }
-
-  .font-btn.active {
-    color: #4fc3f7;
-    border-color: #4fc3f7;
+    background: var(--dirty);
+    flex-shrink: 0;
   }
 
   .status-message {
     font-size: 11px;
-    color: #888;
-    font-family: system-ui, sans-serif;
+    color: var(--text-muted);
+    letter-spacing: 0.02em;
+  }
+
+  /* ─── Ghost button ─── */
+  .btn-ghost {
+    height: 28px;
+    padding: 0 10px;
+    border-radius: 6px;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-family: system-ui, -apple-system, sans-serif;
+    cursor: pointer;
+    transition: background 120ms ease, color 120ms ease;
+  }
+  .btn-ghost:hover {
+    background: var(--surface-hover);
+    color: var(--text-primary);
+  }
+  .btn-ghost:active {
+    background: var(--surface-active);
+  }
+
+  /* ─── Primary button (Save) ─── */
+  .btn-primary {
+    height: 28px;
+    padding: 0 12px;
+    border-radius: 6px;
+    border: none;
+    background: var(--accent);
+    color: #fff;
+    font-size: 12px;
+    font-family: system-ui, -apple-system, sans-serif;
+    cursor: pointer;
+    transition: background 120ms ease;
+  }
+  .btn-primary:hover {
+    background: var(--accent-hover);
+  }
+
+  /* ─── Icon button (theme toggle) ─── */
+  .btn-icon {
+    height: 28px;
+    padding: 0 8px;
+    border-radius: 6px;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 11px;
+    font-family: system-ui, -apple-system, sans-serif;
+    cursor: pointer;
+    transition: background 120ms ease, color 120ms ease;
+  }
+  .btn-icon:hover {
+    background: var(--surface-hover);
+    color: var(--text-primary);
+  }
+
+  /* ─── Separator ─── */
+  .separator {
+    width: 1px;
+    height: 16px;
+    background: var(--border-subtle);
+    margin: 0 4px;
+  }
+
+  /* ─── Segmented control (font selector) ─── */
+  .segmented {
+    display: flex;
+    background: var(--surface-base);
+    border-radius: 6px;
+    padding: 2px;
+    gap: 1px;
+  }
+  .segmented-item {
+    padding: 3px 8px;
+    border-radius: 4px;
+    border: none;
+    font-size: 11px;
+    font-family: system-ui, -apple-system, sans-serif;
+    color: var(--text-muted);
+    background: transparent;
+    cursor: pointer;
+    transition: background 100ms, color 100ms;
+  }
+  .segmented-item:hover {
+    color: var(--text-secondary);
+  }
+  .segmented-item.active {
+    background: var(--surface-elevated);
+    color: var(--text-primary);
   }
 </style>

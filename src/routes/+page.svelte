@@ -6,6 +6,7 @@
   import TitleBar from '$lib/components/TitleBar.svelte';
   import SceneNavigator from '$lib/components/SceneNavigator.svelte';
   import { documentStore } from '$lib/stores/documentStore.svelte';
+  import { themeStore } from '$lib/stores/themeStore.svelte';
 
   let navigatorOpen = $state(false);
 
@@ -13,6 +14,9 @@
   let appInitialized = false;
 
   onMount(async () => {
+    // Initialize theme on first mount
+    themeStore.init();
+
     if (!appInitialized) {
       appInitialized = true;
       if (!documentStore.document) {
@@ -105,7 +109,7 @@
   main {
     width: 100vw;
     height: 100vh;
-    background: #1a1a1a;
+    background: var(--surface-base);
     overflow: hidden;
     display: flex;
     flex-direction: column;

@@ -219,32 +219,35 @@
 </script>
 
 <div class="editor-wrapper">
-  <div class="editor-container" bind:this={editorElement} style="--editor-font: '{fontFamily}'"></div>
+  <div class="editor-scroll">
+    <div class="editor-container" bind:this={editorElement} style="--editor-font: '{fontFamily}'"></div>
+  </div>
   <div class="status-bar">
-    <span class="status-mode" class:malayalam={currentMode === 'MALAYALAM'} class:flash={modeFlash}>
-      {currentMode}
-    </span>
-    {#if currentMode === 'MALAYALAM'}
-      <span class="status-separator">|</span>
-      <span class="scheme-selector">
-        <button
-          class="scheme-btn"
-          class:active={currentScheme === 'mozhi'}
-          onclick={() => selectScheme('mozhi')}
-        >Mozhi</button>
-        <button
-          class="scheme-btn"
-          class:active={currentScheme === 'inscript2'}
-          onclick={() => selectScheme('inscript2')}
-        >Inscript 2</button>
-        <button
-          class="scheme-btn"
-          class:active={currentScheme === 'inscript1'}
-          onclick={() => selectScheme('inscript1')}
-        >Inscript 1</button>
+    <div class="status-left">
+      <span class="status-mode" class:malayalam={currentMode === 'MALAYALAM'} class:flash={modeFlash}>
+        {currentMode}
       </span>
-    {/if}
-    <span class="status-separator">|</span>
+      {#if currentMode === 'MALAYALAM'}
+        <span class="status-separator">|</span>
+        <span class="scheme-selector">
+          <button
+            class="scheme-btn"
+            class:active={currentScheme === 'mozhi'}
+            onclick={() => selectScheme('mozhi')}
+          >Mozhi</button>
+          <button
+            class="scheme-btn"
+            class:active={currentScheme === 'inscript2'}
+            onclick={() => selectScheme('inscript2')}
+          >Inscript 2</button>
+          <button
+            class="scheme-btn"
+            class:active={currentScheme === 'inscript1'}
+            onclick={() => selectScheme('inscript1')}
+          >Inscript 1</button>
+        </span>
+      {/if}
+    </div>
     <span class="status-element">{currentElement}</span>
   </div>
 </div>
@@ -258,38 +261,37 @@
     flex-direction: column;
   }
 
-  .editor-container {
+  .editor-scroll {
     flex: 1;
     overflow-y: auto;
-    background: #141414;
+    background: var(--surface-base);
+    padding: 40px 0;
   }
 
-  /* ProseMirror editor styles — fixed-width content area centered in the container */
-  .editor-container :global(.ProseMirror) {
+  .editor-container {
     max-width: 680px;
     margin: 0 auto;
-    padding: 60px 80px;
+  }
+
+  /* ─── ProseMirror editor — the screenplay page ─── */
+  .editor-container :global(.ProseMirror) {
+    padding: 60px 72px;
     box-sizing: border-box;
-    min-height: 100%;
+    min-height: 800px;
     outline: none;
     font-family: var(--editor-font), sans-serif;
     font-size: 14px;
     line-height: 1.6;
-    color: #e0e0e0;
-    background: #1c1c1c;
+    color: var(--text-on-page);
+    background: var(--page-bg);
     border-radius: 2px;
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 4px 24px var(--page-shadow), 0 1px 4px rgba(0, 0, 0, 0.2);
     direction: ltr;
     unicode-bidi: normal;
     counter-reset: scene-counter;
   }
 
-  /* Screenplay element styles — Hollywood format
-   * All inner ProseMirror DOM styles must use :global() because ProseMirror
-   * generates its own DOM nodes without Svelte's scoping attributes.
-   * Fixed pixel margins relative to ~520px usable content area.
-   * No text-transform: uppercase — preserves Malayalam script correctly. */
-
+  /* ─── Screenplay element styles — Hollywood format ─── */
   :global(.ProseMirror p) {
     margin: 0;
     padding: 4px 0;
@@ -300,13 +302,13 @@
     font-size: 16px;
     margin-top: 2em;
     margin-bottom: 0.5em;
-    color: #fff;
+    color: var(--text-on-page);
     counter-increment: scene-counter;
   }
 
   :global(.ProseMirror .scene-heading::before) {
     content: counter(scene-counter) ". ";
-    color: #888;
+    color: #999;
     font-size: 11px;
     font-weight: normal;
     margin-right: 4px;
@@ -314,14 +316,15 @@
 
   :global(.ProseMirror .action) {
     margin: 0.5em 0;
-    color: #ddd;
+    color: var(--text-on-page);
+    opacity: 0.85;
   }
 
   :global(.ProseMirror .character) {
     margin-left: 200px;
     margin-top: 1em;
     margin-bottom: 0;
-    color: #fff;
+    color: var(--text-on-page);
     font-weight: bold;
   }
 
@@ -330,7 +333,8 @@
     margin-right: 100px;
     margin-top: 0;
     margin-bottom: 0;
-    color: #ddd;
+    color: var(--text-on-page);
+    opacity: 0.85;
   }
 
   :global(.ProseMirror .parenthetical) {
@@ -338,83 +342,92 @@
     margin-right: 160px;
     margin-top: 0;
     margin-bottom: 0;
-    color: #aaa;
+    color: var(--text-on-page);
+    opacity: 0.6;
     font-style: italic;
   }
 
   :global(.ProseMirror .transition) {
     text-align: right;
     margin-top: 1em;
-    color: #ccc;
+    color: var(--text-on-page);
+    opacity: 0.7;
   }
 
-  /* Status bar */
+  /* ─── Status bar — full-width bottom bar ─── */
   .status-bar {
-    position: fixed;
-    bottom: 0;
-    right: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 28px;
+    padding: 0 16px;
+    background: var(--surface-elevated);
+    border-top: 1px solid var(--border-subtle);
+    font-size: 11px;
+    font-family: system-ui, -apple-system, sans-serif;
+    color: var(--text-muted);
+    user-select: none;
+    flex-shrink: 0;
+    letter-spacing: 0.04em;
+  }
+
+  .status-left {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 6px 16px;
-    background: #2a2a2a;
-    border-top: 1px solid #333;
-    border-left: 1px solid #333;
-    border-top-left-radius: 6px;
-    font-size: 11px;
-    font-family: system-ui, sans-serif;
-    color: #888;
-    z-index: 100;
-    user-select: none;
   }
 
   .status-mode {
     font-weight: 600;
-    color: #4fc3f7;
+    text-transform: uppercase;
+    color: var(--text-muted);
   }
 
   .status-mode.malayalam {
-    color: #81c784;
+    color: var(--accent);
   }
 
   .status-mode.flash {
-    background: rgba(255, 255, 255, 0.15);
+    background: var(--accent-muted);
     border-radius: 3px;
     padding: 1px 6px;
     transition: background 0.5s ease-out;
   }
 
   .status-separator {
-    color: #555;
+    color: var(--border-medium);
   }
 
   .status-element {
-    color: #aaa;
+    color: var(--text-muted);
+    text-transform: uppercase;
   }
 
   .scheme-selector {
     display: flex;
-    gap: 2px;
+    gap: 1px;
   }
 
   .scheme-btn {
     background: none;
     border: none;
-    padding: 1px 6px;
+    padding: 2px 6px;
     font-size: 11px;
-    font-family: system-ui, sans-serif;
-    color: #666;
+    font-family: system-ui, -apple-system, sans-serif;
+    color: var(--text-muted);
     cursor: pointer;
     border-radius: 3px;
+    transition: background 100ms, color 100ms;
+    letter-spacing: 0.04em;
   }
 
   .scheme-btn:hover {
-    color: #aaa;
-    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-secondary);
+    background: var(--surface-hover);
   }
 
   .scheme-btn.active {
-    color: #81c784;
+    color: var(--accent);
     font-weight: 600;
   }
 </style>

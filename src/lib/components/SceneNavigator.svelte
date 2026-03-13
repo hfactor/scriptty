@@ -107,9 +107,10 @@
     width: 0;
     min-width: 0;
     overflow: hidden;
-    background: #222;
-    border-right: 1px solid #333;
-    transition: width 0.2s ease, min-width 0.2s ease;
+    background: var(--surface-base);
+    border-right: 1px solid var(--border-subtle);
+    transition: width 200ms cubic-bezier(0.4, 0, 0.2, 1),
+                min-width 200ms cubic-bezier(0.4, 0, 0.2, 1);
     flex-shrink: 0;
   }
 
@@ -126,10 +127,10 @@
   }
 
   .navigator-title {
-    font-family: system-ui, sans-serif;
+    font-family: system-ui, -apple-system, sans-serif;
     font-size: 11px;
     font-weight: 600;
-    color: #888;
+    color: var(--text-muted);
     text-transform: uppercase;
     letter-spacing: 0.05em;
     margin: 0 0 12px 0;
@@ -137,9 +138,9 @@
   }
 
   .empty-message {
-    font-family: system-ui, sans-serif;
+    font-family: system-ui, -apple-system, sans-serif;
     font-size: 12px;
-    color: #555;
+    color: var(--text-muted);
     padding: 0 4px;
   }
 
@@ -154,27 +155,37 @@
     align-items: baseline;
     gap: 6px;
     width: 100%;
-    padding: 6px 8px;
+    height: 32px;
+    padding: 0 12px;
     border: none;
-    border-radius: 4px;
+    border-left: 2px solid transparent;
+    border-radius: 0 4px 4px 0;
     background: transparent;
-    color: #ccc;
-    font-family: system-ui, sans-serif;
+    color: var(--text-secondary);
+    font-family: system-ui, -apple-system, sans-serif;
     font-size: 12px;
     text-align: left;
     cursor: pointer;
-    line-height: 1.3;
+    line-height: 32px;
+    transition: background 120ms ease, color 120ms ease;
   }
 
   .scene-item:hover {
-    background: #333;
-    color: #fff;
+    background: var(--surface-hover);
+    color: var(--text-primary);
+  }
+
+  .scene-item:active {
+    background: var(--accent-muted);
+    border-left-color: var(--accent);
+    color: var(--text-primary);
   }
 
   .scene-number {
-    color: #666;
+    color: var(--text-muted);
     flex-shrink: 0;
     font-variant-numeric: tabular-nums;
+    font-size: 11px;
   }
 
   .scene-text {

@@ -55,8 +55,11 @@
 {#if open}
   <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
   <div class="modal-backdrop" onclick={handleBackdropClick} onkeydown={handleKeydown} role="dialog" aria-modal="true" tabindex="-1">
-    <div class="modal-content">
-      <h2>Screenplay Info</h2>
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2>Screenplay Info</h2>
+        <button class="btn-close" onclick={handleCancel}>&times;</button>
+      </div>
 
       <div class="form-group">
         <label for="meta-title">Title</label>
@@ -84,9 +87,9 @@
         </div>
       </div>
 
-      <div class="modal-actions">
-        <button class="btn-cancel" onclick={handleCancel}>Cancel</button>
-        <button class="btn-save" onclick={handleSave}>Save</button>
+      <div class="modal-footer">
+        <button class="btn-ghost" onclick={handleCancel}>Cancel</button>
+        <button class="btn-primary" onclick={handleSave}>Save</button>
       </div>
     </div>
   </div>
@@ -96,29 +99,69 @@
   .modal-backdrop {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.7);
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
     display: flex;
     align-items: center;
     justify-content: center;
     z-index: 1000;
   }
 
-  .modal-content {
-    background: #2a2a2a;
-    border: 1px solid #444;
-    border-radius: 8px;
+  .modal-card {
+    background: var(--surface-float);
+    border: 1px solid var(--border-medium);
+    border-radius: 12px;
     padding: 24px;
-    width: 400px;
+    width: 480px;
     max-width: 90vw;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    animation: modal-in 150ms ease-out;
   }
 
-  .modal-content h2 {
-    margin: 0 0 20px;
-    font-size: 16px;
-    color: #e0e0e0;
-    font-family: system-ui, sans-serif;
+  @keyframes modal-in {
+    from {
+      opacity: 0;
+      transform: scale(0.97);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  .modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
+
+  .modal-header h2 {
+    margin: 0;
+    font-size: 15px;
+    color: var(--text-primary);
+    font-family: system-ui, -apple-system, sans-serif;
     font-weight: 600;
+  }
+
+  .btn-close {
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 18px;
+    cursor: pointer;
+    transition: background 120ms ease, color 120ms ease;
+  }
+
+  .btn-close:hover {
+    background: var(--surface-hover);
+    color: var(--text-primary);
   }
 
   .form-group {
@@ -128,28 +171,29 @@
   .form-group label {
     display: block;
     margin-bottom: 4px;
-    font-size: 12px;
-    color: #999;
-    font-family: system-ui, sans-serif;
+    font-size: 13px;
+    color: var(--text-secondary);
+    font-family: system-ui, -apple-system, sans-serif;
   }
 
   .form-group input,
   .form-group textarea {
     width: 100%;
-    padding: 8px 10px;
+    padding: 10px 12px;
     font-size: 13px;
-    color: #e0e0e0;
-    background: #1a1a1a;
-    border: 1px solid #444;
-    border-radius: 4px;
-    font-family: system-ui, sans-serif;
+    color: var(--text-primary);
+    background: var(--surface-base);
+    border: 1px solid var(--border-medium);
+    border-radius: 8px;
+    font-family: system-ui, -apple-system, sans-serif;
     box-sizing: border-box;
+    transition: border-color 120ms ease;
   }
 
   .form-group input:focus,
   .form-group textarea:focus {
     outline: none;
-    border-color: #4fc3f7;
+    border-color: var(--accent);
   }
 
   .form-group textarea {
@@ -165,38 +209,45 @@
     flex: 1;
   }
 
-  .modal-actions {
+  .modal-footer {
     display: flex;
     justify-content: flex-end;
     gap: 8px;
     margin-top: 20px;
   }
 
-  .btn-cancel, .btn-save {
-    padding: 6px 16px;
+  .btn-ghost {
+    height: 28px;
+    padding: 0 12px;
+    border-radius: 6px;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
     font-size: 12px;
-    border-radius: 4px;
+    font-family: system-ui, -apple-system, sans-serif;
     cursor: pointer;
-    font-family: system-ui, sans-serif;
-    border: 1px solid #444;
+    transition: background 120ms ease, color 120ms ease;
   }
 
-  .btn-cancel {
-    color: #ccc;
-    background: #333;
+  .btn-ghost:hover {
+    background: var(--surface-hover);
+    color: var(--text-primary);
   }
 
-  .btn-cancel:hover {
-    background: #444;
-  }
-
-  .btn-save {
+  .btn-primary {
+    height: 28px;
+    padding: 0 12px;
+    border-radius: 6px;
+    border: none;
+    background: var(--accent);
     color: #fff;
-    background: #2979ff;
-    border-color: #2979ff;
+    font-size: 12px;
+    font-family: system-ui, -apple-system, sans-serif;
+    cursor: pointer;
+    transition: background 120ms ease;
   }
 
-  .btn-save:hover {
-    background: #448aff;
+  .btn-primary:hover {
+    background: var(--accent-hover);
   }
 </style>
