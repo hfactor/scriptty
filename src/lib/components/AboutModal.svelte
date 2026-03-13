@@ -19,7 +19,7 @@
   <div class="modal-backdrop" onclick={handleBackdropClick} onkeydown={handleKeydown} role="dialog" aria-modal="true" tabindex="-1">
     <div class="modal-card">
       <div class="logo-area">
-        <span class="logo-glyph">ഋ</span>
+        <img src="/app-icon.png" alt="Scriptty" class="logo-img" />
       </div>
 
       <h1 class="app-name">Scriptty</h1>
@@ -84,20 +84,12 @@
   }
 
   .logo-area {
-    width: 80px;
-    height: 80px;
     margin: 0 auto 16px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: var(--accent-muted);
-    border-radius: 16px;
   }
 
-  .logo-glyph {
-    font-size: 40px;
-    color: var(--accent);
-    line-height: 1;
+  .logo-img {
+    width: 80px;
+    height: 80px;
   }
 
   .app-name {
