@@ -9,6 +9,7 @@ import type { MessageDialogResult } from '@tauri-apps/plugin-dialog';
 export interface ScreenplayMeta {
   title: string;
   author: string;
+  director: string;
   contact: string;
   draft_number: number;
   draft_date: string;
@@ -26,6 +27,7 @@ export interface ScreenplayStory {
   idea: string;
   synopsis: string;
   treatment: string;
+  narrative: string;
 }
 
 export interface SceneCard {

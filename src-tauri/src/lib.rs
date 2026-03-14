@@ -80,6 +80,7 @@ pub fn run() {
         &[
           &MenuItem::with_id(app, "statistics", "Statistics", true, Some("CmdOrCtrl+Shift+I"))?,
           &MenuItem::with_id(app, "scene-cards", "Scene Cards", true, Some("CmdOrCtrl+Shift+K"))?,
+          &MenuItem::with_id(app, "story-mode", "Story Mode", true, Some("CmdOrCtrl+Shift+L"))?,
         ],
       )?;
 
@@ -118,6 +119,7 @@ pub fn run() {
           "help-guide" => { let _ = app.emit("menu-help-guide", ()); }
           "statistics" => { let _ = app.emit("menu-statistics", ()); }
           "scene-cards" => { let _ = app.emit("menu-scene-cards", ()); }
+          "story-mode" => { let _ = app.emit("menu-story-mode", ()); }
           "find" => { let _ = app.emit("menu-find", ()); }
           "find-replace" => { let _ = app.emit("menu-find-replace", ()); }
           "quit" => { let _ = app.emit("menu-quit", ()); }

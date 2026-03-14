@@ -5,11 +5,13 @@
   let ideaOpen = $state(true);
   let synopsisOpen = $state(true);
   let treatmentOpen = $state(true);
+  let narrativeOpen = $state(false);
 
   // Derived story data from document store
   let idea = $derived(documentStore.document?.story.idea ?? '');
   let synopsis = $derived(documentStore.document?.story.synopsis ?? '');
   let treatment = $derived(documentStore.document?.story.treatment ?? '');
+  let narrative = $derived(documentStore.document?.story.narrative ?? '');
 
   function updateIdea(event: Event) {
     const value = (event.target as HTMLTextAreaElement).value;
@@ -31,6 +33,14 @@
     const value = (event.target as HTMLTextAreaElement).value;
     if (documentStore.document) {
       documentStore.document.story.treatment = value;
+      documentStore.markDirty();
+    }
+  }
+
+  function updateNarrative(event: Event) {
+    const value = (event.target as HTMLTextAreaElement).value;
+    if (documentStore.document) {
+      documentStore.document.story.narrative = value;
       documentStore.markDirty();
     }
   }
@@ -92,6 +102,25 @@
       </div>
     {/if}
   </div>
+
+  <!-- Narrative -->
+  <div class="section">
+    <button class="section-header" onclick={() => { narrativeOpen = !narrativeOpen; }}>
+      <span class="chevron" class:open={narrativeOpen}>&#9654;</span>
+      <span class="section-title">Narrative</span>
+      <span class="section-hint">Cmd+Shift+L for full screen</span>
+    </button>
+    {#if narrativeOpen}
+      <div class="section-body treatment-body">
+        <textarea
+          class="story-textarea treatment-textarea"
+          placeholder="Full-length story. Use Story Mode (Cmd+Shift+L) for a distraction-free writing experience."
+          value={narrative}
+          oninput={updateNarrative}
+        ></textarea>
+      </div>
+    {/if}
+  </div>
 </div>
 
 <style>
@@ -144,6 +173,16 @@
 
   .section-title {
     color: var(--text-muted);
+  }
+
+  .section-hint {
+    margin-left: auto;
+    font-size: 10px;
+    font-weight: 400;
+    color: var(--text-muted);
+    opacity: 0.6;
+    text-transform: none;
+    letter-spacing: normal;
   }
 
   .section-body {

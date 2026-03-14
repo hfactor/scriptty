@@ -164,6 +164,8 @@ pub struct ExportOptions {
     pub include_treatment: bool,
     /// Include the screenplay content
     pub include_screenplay: bool,
+    /// Include the narrative (full-length story)
+    pub include_narrative: bool,
     /// Include scene cards breakdown
     pub include_scene_cards: bool,
     /// Screenplay format: "hollywood" or "indian"
@@ -216,6 +218,12 @@ pub fn export_combined_pdf(
 
     let mut markup = String::new();
 
+    // Track whether any content has been emitted — used to decide whether
+    // subsequent sections need a `#pagebreak()` before them. Without this,
+    // the first section would emit a pagebreak into empty space, creating
+    // a blank leading page.
+    let mut has_content = false;
+
     // If we're including the screenplay, use the appropriate format generator
     // which already includes the Typst preamble and optionally the title page.
     if options.include_screenplay {
@@ -232,13 +240,16 @@ pub fn export_combined_pdf(
         } else {
             pdf::generate_typst_markup(&document.content, font_name, &meta_for_export)
         };
+        has_content = true;
     } else {
-        // No screenplay — we still need a Typst preamble for the prose sections.
-        // Generate a minimal preamble with just page setup and font.
+        // No screenplay — we still need a Typst preamble for the prose/scene card sections.
+        // Use symmetric margins and comfortable prose settings as the base.
+        // Individual sections (prose, scene cards) will override margins as needed
+        // via their own `#set page(...)` calls.
         markup.push_str(&format!(
-            r#"#set page(paper: "a4", margin: (top: 2.5cm, bottom: 2.5cm, left: 2.5cm, right: 2.5cm))
+            r#"#set page(paper: "a4", margin: (top: 2.5cm, bottom: 2.5cm, left: 3cm, right: 3cm))
 #set text(font: "{}", size: 12pt)
-#set par(leading: 0.8em)
+#set par(justify: true, leading: 0.8em)
 "#,
             font_name
         ));
@@ -246,27 +257,50 @@ pub fn export_combined_pdf(
         // If title page is requested without screenplay, generate a standalone title page
         if options.include_title_page && !document.meta.title.is_empty() {
             markup.push_str(&pdf::generate_title_page_markup(&document.meta));
+            has_content = true;
         }
     }
 
     // Append synopsis section if requested
     if options.include_synopsis && !document.story.synopsis.is_empty() {
         markup.push_str(&pdf::generate_prose_section_markup(
-            "SYNOPSIS",
+            "Synopsis",
             &document.story.synopsis,
             font_name,
+            &document.meta.title,
             &document.meta.author,
+            &document.meta.director,
+            has_content,
         ));
+        has_content = true;
     }
 
     // Append treatment section if requested
     if options.include_treatment && !document.story.treatment.is_empty() {
         markup.push_str(&pdf::generate_prose_section_markup(
-            "TREATMENT",
+            "Treatment",
             &document.story.treatment,
             font_name,
+            &document.meta.title,
             &document.meta.author,
+            &document.meta.director,
+            has_content,
         ));
+        has_content = true;
+    }
+
+    // Append narrative (full-length story) section if requested
+    if options.include_narrative && !document.story.narrative.is_empty() {
+        markup.push_str(&pdf::generate_prose_section_markup(
+            "Narrative",
+            &document.story.narrative,
+            font_name,
+            &document.meta.title,
+            &document.meta.author,
+            &document.meta.director,
+            has_content,
+        ));
+        has_content = true;
     }
 
     // Append scene cards section if requested
@@ -274,6 +308,8 @@ pub fn export_combined_pdf(
         markup.push_str(&pdf::generate_scene_cards_markup(
             &options.scene_cards_data,
             font_name,
+            &document.meta,
+            has_content,
         ));
     }
 

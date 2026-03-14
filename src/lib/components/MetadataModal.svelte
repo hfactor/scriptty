@@ -7,6 +7,7 @@
   // Local form state — initialized from document meta when modal opens
   let title = $state('');
   let author = $state('');
+  let director = $state('');
   let contact = $state('');
   let draftNumber = $state(1);
   let draftDate = $state('');
@@ -17,6 +18,7 @@
       const meta = documentStore.document.meta;
       title = meta.title || '';
       author = meta.author || '';
+      director = meta.director || '';
       contact = meta.contact || '';
       draftNumber = meta.draft_number || 1;
       draftDate = meta.draft_date || '';
@@ -27,6 +29,7 @@
     if (documentStore.document) {
       documentStore.document.meta.title = title;
       documentStore.document.meta.author = author;
+      documentStore.document.meta.director = director;
       documentStore.document.meta.contact = contact;
       documentStore.document.meta.draft_number = draftNumber;
       documentStore.document.meta.draft_date = draftDate;
@@ -67,8 +70,13 @@
       </div>
 
       <div class="form-group">
-        <label for="meta-author">Author</label>
-        <input id="meta-author" type="text" bind:value={author} placeholder="Writer name" />
+        <label for="meta-author">Written by</label>
+        <input id="meta-author" type="text" bind:value={author} placeholder="Writer name(s)" />
+      </div>
+
+      <div class="form-group">
+        <label for="meta-director">Directed by</label>
+        <input id="meta-director" type="text" bind:value={director} placeholder="Director name" />
       </div>
 
       <div class="form-group">

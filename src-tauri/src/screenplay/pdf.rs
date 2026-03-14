@@ -236,6 +236,47 @@ fn escape_typst(text: &str) -> String {
         .replace('$', "\\$")
 }
 
+/// Formats credit lines from author and director fields.
+///
+/// Returns a vector of credit lines (e.g. ["Written and Directed by", "Alice"])
+/// based on what fields are filled in and whether writer and director are the same person.
+///
+/// # Rules
+/// - Author only → "Written by" / author
+/// - Director only → "Directed by" / director
+/// - Same person → "Written and Directed by" / name
+/// - Different people → "Written by" / author, "Directed by" / director
+fn format_credit_lines(author: &str, director: &str) -> Vec<(String, String)> {
+    let author = author.trim();
+    let director = director.trim();
+
+    // Both empty — no credits
+    if author.is_empty() && director.is_empty() {
+        return Vec::new();
+    }
+
+    // Only author
+    if director.is_empty() {
+        return vec![("Written by".to_string(), author.to_string())];
+    }
+
+    // Only director
+    if author.is_empty() {
+        return vec![("Directed by".to_string(), director.to_string())];
+    }
+
+    // Both present — check if they're the same person (case-insensitive comparison)
+    if author.eq_ignore_ascii_case(director) {
+        return vec![("Written and Directed by".to_string(), author.to_string())];
+    }
+
+    // Different people — separate credit lines
+    vec![
+        ("Written by".to_string(), author.to_string()),
+        ("Directed by".to_string(), director.to_string()),
+    ]
+}
+
 /// Generates Typst markup for a screenplay title page from document metadata.
 ///
 /// The title page is only generated if `meta.title` is non-empty (after trimming).
@@ -256,7 +297,7 @@ pub fn generate_title_page_markup(meta: &ScreenplayMeta) -> String {
     // Open a page block with title page margins (wider top/bottom for centering).
     page.push_str("#page(margin: (top: 3cm, bottom: 3cm, left: 3cm, right: 2.5cm))[\n");
 
-    // --- Centered section: title + "Written by" + author ---
+    // --- Centered section: title + credit lines ---
     page.push_str("  #align(center)[\n");
     page.push_str("    #v(8cm)\n");
     // Escape the title so any Typst special characters (like # or $) are rendered literally.
@@ -265,15 +306,28 @@ pub fn generate_title_page_markup(meta: &ScreenplayMeta) -> String {
         escape_typst(meta.title.trim())
     ));
 
-    // Only show "Written by" + author if the author field is non-empty.
-    if !meta.author.trim().is_empty() {
+    // Generate credit lines from author and director fields.
+    // Uses format_credit_lines() to handle "Written by", "Directed by",
+    // or combined "Written and Directed by" when they're the same person.
+    let credits = format_credit_lines(&meta.author, &meta.director);
+    if !credits.is_empty() {
         page.push_str("    #v(1cm)\n");
-        page.push_str("    #text(size: 14pt)[Written by]\n");
-        page.push_str("    #v(0.5cm)\n");
-        page.push_str(&format!(
-            "    #text(size: 14pt)[{}]\n",
-            escape_typst(meta.author.trim())
-        ));
+        for (i, (label, name)) in credits.iter().enumerate() {
+            if i > 0 {
+                page.push_str("    #v(0.6cm)\n");
+            }
+            // Label ("Written by") — small, light, understated
+            page.push_str(&format!(
+                "    #text(size: 11pt, fill: luma(100))[{}]\n",
+                escape_typst(label)
+            ));
+            page.push_str("    #v(0.4cm)\n");
+            // Name — larger, prominent
+            page.push_str(&format!(
+                "    #text(size: 16pt)[{}]\n",
+                escape_typst(name)
+            ));
+        }
     }
 
     page.push_str("  ]\n"); // close #align(center)
@@ -1076,56 +1130,111 @@ pub fn generate_pdf(
     Ok(pdf_bytes)
 }
 
-/// Generates a Typst markup section for a prose text block (synopsis or treatment).
+/// Generates a Typst markup section for a prose text block (synopsis, treatment, or narrative).
 ///
-/// Creates a Typst page with the section heading centered and bold,
-/// followed by the prose body text in a readable layout.
+/// Creates a properly typeset prose section with:
+/// - Page break and margin reset to symmetric prose layout
+/// - Justified text with first-line paragraph indentation
+/// - Comfortable line spacing for reading (1.5× leading)
+/// - Project title as main heading, section name as subtitle, author byline
 ///
 /// # Arguments
-/// * `heading` — The section title (e.g. "SYNOPSIS" or "TREATMENT")
+/// * `section_name` — The section label (e.g. "Synopsis", "Treatment", "Narrative")
 /// * `body` — The prose text content
 /// * `font_name` — The font family name for rendering
-/// * `author` — Optional author name shown below the heading
-pub fn generate_prose_section_markup(heading: &str, body: &str, _font_name: &str, author: &str) -> String {
-    let escaped_heading = escape_typst(heading);
+/// * `title` — The project/screenplay title (shown as the main heading)
+/// * `author` — Writer name(s)
+/// * `director` — Director name
+/// * `needs_pagebreak` — whether to emit a `#pagebreak()` before the section
+pub fn generate_prose_section_markup(section_name: &str, body: &str, font_name: &str, title: &str, author: &str, director: &str, needs_pagebreak: bool) -> String {
+    let escaped_section = escape_typst(section_name);
     let escaped_body = escape_typst(body);
-    let escaped_author = escape_typst(author);
+    let escaped_title = escape_typst(title);
 
     let mut markup = String::new();
 
-    // Page break to start the section on a new page
-    markup.push_str("#pagebreak()\n\n");
+    // Page break and reset page/paragraph settings for prose layout.
+    // Screenplay uses asymmetric margins (left: 3cm) and tight leading (0.65em);
+    // prose needs symmetric margins, justified text, and relaxed leading.
+    // Only emit a page break if there's preceding content — avoids a blank first page.
+    if needs_pagebreak {
+        markup.push_str("#pagebreak()\n\n");
+    }
 
-    // Centered heading
     markup.push_str(&format!(
-        r#"#align(center)[
-  #text(size: 16pt, weight: "bold")[{}]
-]
+        r#"// Prose section: reset layout for readable prose typography
+#set page(margin: (top: 2.5cm, bottom: 2.5cm, left: 3cm, right: 3cm))
+#set text(font: "{}", size: 12pt)
+#set par(justify: true, leading: 0.8em, first-line-indent: 1cm)
+
 "#,
-        escaped_heading
+        font_name
     ));
 
-    // Author name below heading (if provided)
-    if !author.is_empty() {
+    // Project title as the main heading (large, bold)
+    if !title.is_empty() {
         markup.push_str(&format!(
-            r#"
-#align(center)[
-  #text(size: 12pt)[{}]
+            r#"#par(first-line-indent: 0cm)[
+  #align(center)[
+    #v(2cm)
+    #text(size: 20pt, weight: "bold")[{}]
+  ]
 ]
 "#,
-            escaped_author
+            escaped_title
         ));
     }
 
-    markup.push_str("\n#v(1cm)\n\n");
+    // Section name as a subtitle (smaller, tracked, muted)
+    markup.push_str(&format!(
+        r#"#par(first-line-indent: 0cm)[
+  #align(center)[
+    {}#text(size: 12pt, tracking: 0.15em, fill: luma(100))[{}]
+  ]
+]
+"#,
+        // Add spacing: more if title is present, less if it's the first element
+        if title.is_empty() { "#v(2cm)\n    " } else { "#v(0.6cm)\n    " },
+        escaped_section.to_uppercase()
+    ));
+
+    // Credit lines below the section name — compact single-line format.
+    // Label is italic and muted, name is normal weight for visual hierarchy.
+    let credits = format_credit_lines(author, director);
+    for (label, name) in &credits {
+        markup.push_str(&format!(
+            r#"#par(first-line-indent: 0cm)[
+  #align(center)[
+    #v(0.3cm)
+    #text(size: 11pt)[#text(fill: luma(120))[#emph[{}]] {}]
+  ]
+]
+"#,
+            escape_typst(label),
+            escape_typst(name)
+        ));
+    }
+
+    markup.push_str("\n#v(1.5cm)\n\n");
 
     // Body text — split by newlines to preserve paragraph breaks.
-    // Each paragraph gets its own Typst paragraph with spacing.
+    // Each non-empty line becomes a Typst paragraph. Empty lines add spacing.
+    // The first paragraph after the heading should not have first-line indent
+    // (standard typographic convention).
+    let mut is_first_paragraph = true;
     for paragraph in escaped_body.split('\n') {
         let trimmed = paragraph.trim();
         if trimmed.is_empty() {
-            markup.push_str("#v(0.5em)\n");
+            // Blank line = paragraph break with spacing
+            markup.push_str("#v(0.4em)\n");
+            continue;
+        }
+        if is_first_paragraph {
+            // First paragraph: no indent (typographic convention after headings)
+            markup.push_str(&format!("#par(first-line-indent: 0cm)[{}]\n\n", trimmed));
+            is_first_paragraph = false;
         } else {
+            // Subsequent paragraphs: inherit the 1cm first-line indent from #set par()
             markup.push_str(&format!("{}\n\n", trimmed));
         }
     }
@@ -1140,17 +1249,69 @@ pub fn generate_prose_section_markup(heading: &str, body: &str, _font_name: &str
 /// # Arguments
 /// * `cards_data` — JSON array of scene card objects with auto-populated and manual fields
 /// * `font_name` — The font family name for rendering
-pub fn generate_scene_cards_markup(cards_data: &Value, _font_name: &str) -> String {
+/// * `meta` — Document metadata for title and credits
+/// * `needs_pagebreak` — whether to emit a `#pagebreak()` before the section.
+pub fn generate_scene_cards_markup(cards_data: &Value, font_name: &str, meta: &ScreenplayMeta, needs_pagebreak: bool) -> String {
     let mut markup = String::new();
 
-    markup.push_str("#pagebreak()\n\n");
-    markup.push_str(r#"#align(center)[
-  #text(size: 16pt, weight: "bold")[SCENE BREAKDOWN]
+    // Only emit a page break if there's preceding content.
+    if needs_pagebreak {
+        markup.push_str("#pagebreak()\n\n");
+    }
+
+    // Reset to symmetric prose-style margins for the scene breakdown section
+    markup.push_str(&format!(
+        r#"// Scene breakdown: reset layout
+#set page(margin: (top: 2.5cm, bottom: 2.5cm, left: 2.5cm, right: 2.5cm))
+#set text(font: "{}", size: 11pt)
+#set par(justify: false, first-line-indent: 0cm, leading: 0.65em)
+
+"#,
+        font_name
+    ));
+
+    // Project title as main heading (if present)
+    if !meta.title.trim().is_empty() {
+        markup.push_str(&format!(
+            r#"#par(first-line-indent: 0cm)[
+  #align(center)[
+    #v(1cm)
+    #text(size: 20pt, weight: "bold")[{}]
+  ]
 ]
+"#,
+            escape_typst(meta.title.trim())
+        ));
+    }
 
-#v(1cm)
+    // "Scene Breakdown" as section subtitle
+    markup.push_str(&format!(
+        r#"#par(first-line-indent: 0cm)[
+  #align(center)[
+    {}#text(size: 12pt, tracking: 0.15em, fill: luma(100))[SCENE BREAKDOWN]
+  ]
+]
+"#,
+        if meta.title.trim().is_empty() { "#v(1cm)\n    " } else { "#v(0.6cm)\n    " }
+    ));
 
-"#);
+    // Credit lines — label italic and muted, name normal weight
+    let credits = format_credit_lines(&meta.author, &meta.director);
+    for (label, name) in &credits {
+        markup.push_str(&format!(
+            r#"#par(first-line-indent: 0cm)[
+  #align(center)[
+    #v(0.3cm)
+    #text(size: 11pt)[#text(fill: luma(120))[#emph[{}]] {}]
+  ]
+]
+"#,
+            escape_typst(label),
+            escape_typst(name)
+        ));
+    }
+
+    markup.push_str("\n#v(1.5cm)\n\n");
 
     // cards_data is expected to be a JSON array of objects:
     // [{ scene_number, heading, location, time, characters, page_estimate, description, shoot_notes }]

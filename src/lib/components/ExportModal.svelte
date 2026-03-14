@@ -11,6 +11,7 @@
   let includeSynopsis = $state(false);
   let includeTreatment = $state(false);
   let includeScreenplay = $state(true);
+  let includeNarrative = $state(false);
   let includeSceneCards = $state(false);
   let format = $state<'hollywood' | 'indian'>('hollywood');
 
@@ -22,6 +23,7 @@
   // Derived: check if synopsis/treatment have content
   let hasSynopsis = $derived((documentStore.document?.story.synopsis ?? '').trim().length > 0);
   let hasTreatment = $derived((documentStore.document?.story.treatment ?? '').trim().length > 0);
+  let hasNarrative = $derived((documentStore.document?.story.narrative ?? '').trim().length > 0);
 
   function handleKeydown(event: KeyboardEvent) {
     if (event.key === 'Escape') {
@@ -209,6 +211,7 @@
           include_synopsis: includeSynopsis,
           include_treatment: includeTreatment,
           include_screenplay: includeScreenplay,
+          include_narrative: includeNarrative,
           include_scene_cards: includeSceneCards,
           format,
           scene_cards_data: sceneCardsData,
@@ -263,23 +266,29 @@
           <input type="checkbox" bind:checked={includeScreenplay} />
           <span>Screenplay</span>
         </label>
+        <label class="checkbox-row" class:disabled={!hasNarrative}>
+          <input type="checkbox" bind:checked={includeNarrative} disabled={!hasNarrative} />
+          <span>Narrative{!hasNarrative ? ' (empty)' : ''}</span>
+        </label>
         <label class="checkbox-row">
           <input type="checkbox" bind:checked={includeSceneCards} />
           <span>Scene Cards</span>
         </label>
       </div>
 
-      <div class="section-label">Format</div>
-      <div class="radio-group">
-        <label class="radio-row">
-          <input type="radio" name="format" value="hollywood" bind:group={format} />
-          <span>Hollywood (single column)</span>
-        </label>
-        <label class="radio-row">
-          <input type="radio" name="format" value="indian" bind:group={format} />
-          <span>Indian (two column)</span>
-        </label>
-      </div>
+      {#if includeScreenplay}
+        <div class="section-label">Screenplay Format</div>
+        <div class="radio-group">
+          <label class="radio-row">
+            <input type="radio" name="format" value="hollywood" bind:group={format} />
+            <span>Hollywood (single column)</span>
+          </label>
+          <label class="radio-row">
+            <input type="radio" name="format" value="indian" bind:group={format} />
+            <span>Indian (two column)</span>
+          </label>
+        </div>
+      {/if}
 
       {#if errorMessage}
         <p class="error-message">{errorMessage}</p>

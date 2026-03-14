@@ -11,8 +11,11 @@ use serde::{Deserialize, Serialize};
 pub struct ScreenplayMeta {
     /// The title of the screenplay
     pub title: String,
-    /// The author's name
+    /// The writer's name (or names — use "&" for writing teams, "and" for sequential writers)
     pub author: String,
+    /// The director's name. Uses `default` so old files without this field still load.
+    #[serde(default)]
+    pub director: String,
     /// Contact information (email, phone, agent, etc.)
     pub contact: String,
     /// Draft revision number, starting at 1
@@ -33,6 +36,7 @@ impl Default for ScreenplayMeta {
         Self {
             title: String::new(),
             author: String::new(),
+            director: String::new(),
             contact: String::new(),
             draft_number: 1,
             draft_date: String::new(),
@@ -65,7 +69,7 @@ impl Default for ScreenplaySettings {
     }
 }
 
-/// Story development sections — Idea, Synopsis, and Treatment.
+/// Story development sections — Idea, Synopsis, Treatment, and Narrative.
 ///
 /// Stored in the `"story"` key of a `.screenplay` file.
 /// These are plain text sections the writer uses to develop the story
@@ -78,6 +82,10 @@ pub struct ScreenplayStory {
     pub synopsis: String,
     /// Full narrative prose — scene-by-scene treatment (2,000–10,000+ words)
     pub treatment: String,
+    /// Full-length story text — an independent long-form narrative.
+    /// Uses `default` so old files without this field still load.
+    #[serde(default)]
+    pub narrative: String,
 }
 
 impl Default for ScreenplayStory {
@@ -86,6 +94,7 @@ impl Default for ScreenplayStory {
             idea: String::new(),
             synopsis: String::new(),
             treatment: String::new(),
+            narrative: String::new(),
         }
     }
 }

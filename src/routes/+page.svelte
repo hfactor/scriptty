@@ -7,6 +7,7 @@
   import TitleBar from '$lib/components/TitleBar.svelte';
   import LeftPanel from '$lib/components/LeftPanel.svelte';
   import SceneCardsView from '$lib/components/SceneCardsView.svelte';
+  import StoryModeView from '$lib/components/StoryModeView.svelte';
   import AboutModal from '$lib/components/AboutModal.svelte';
   import HelpModal from '$lib/components/HelpModal.svelte';
   import StatisticsModal from '$lib/components/StatisticsModal.svelte';
@@ -17,6 +18,7 @@
   let showAbout = $state(false);
   let showHelp = $state(false);
   let showSceneCards = $state(false);
+  let showStoryMode = $state(false);
   let findReplaceOpen = $state(false);
   let findReplaceMode = $state<'find' | 'replace'>('find');
   let showStatistics = $state(false);
@@ -74,6 +76,12 @@
             }
           });
         });
+      }
+      // Cmd+Shift+L — Toggle Story Mode
+      if ((event.metaKey || event.ctrlKey) && event.shiftKey && event.key.toLowerCase() === 'l') {
+        event.preventDefault();
+        showStoryMode = !showStoryMode;
+        return;
       }
       // Cmd+Shift+I — Script Statistics
       if ((event.metaKey || event.ctrlKey) && event.shiftKey && event.key.toLowerCase() === 'i') {
@@ -148,6 +156,10 @@
       showSceneCards = !showSceneCards;
     });
 
+    const unlistenStoryMode = await listen('menu-story-mode', () => {
+      showStoryMode = !showStoryMode;
+    });
+
     const unlistenFind = await listen('menu-find', () => {
       findReplaceOpen = true;
       findReplaceMode = 'find';
@@ -182,6 +194,7 @@
       unlistenHelpGuide();
       unlistenStatistics();
       unlistenSceneCards();
+      unlistenStoryMode();
       unlistenFind();
       unlistenFindReplace();
       unlistenQuit();
@@ -196,7 +209,10 @@
     {#if showSceneCards}
       <SceneCardsView onClose={() => { showSceneCards = false; }} />
     {/if}
-    <div class="editor-area" class:hidden={showSceneCards}>
+    {#if showStoryMode}
+      <StoryModeView onClose={() => { showStoryMode = false; }} />
+    {/if}
+    <div class="editor-area" class:hidden={showSceneCards || showStoryMode}>
       <LeftPanel isOpen={panelOpen} />
       <Editor bind:findReplaceOpen bind:findReplaceMode />
     </div>

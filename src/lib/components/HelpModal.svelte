@@ -81,11 +81,28 @@
           <p>You can mix Malayalam and English freely on the same line (e.g., "രമേഷ് Flat ലേക്ക് നടന്നു").</p>
         </section>
 
+        <!-- Character Autocomplete -->
+        <section class="help-section">
+          <h3>Character Autocomplete</h3>
+          <p>When typing a character name, Scriptty suggests names already used in your screenplay after 2 characters. Use <kbd>↑</kbd> / <kbd>↓</kbd> to navigate, <kbd>Enter</kbd> or <kbd>Tab</kbd> to accept, <kbd>Escape</kbd> to dismiss.</p>
+        </section>
+
+        <!-- Find and Replace -->
+        <section class="help-section">
+          <h3>Find and Replace</h3>
+          <p>Press <kbd>Cmd+F</kbd> to open the Find bar, or <kbd>Cmd+Shift+H</kbd> to open Find and Replace. Matches are highlighted in yellow, with the current match in orange.</p>
+          <ul>
+            <li><kbd>Enter</kbd> or the arrow buttons to move between matches</li>
+            <li>Toggle case sensitivity with the <strong>Aa</strong> button</li>
+            <li>Replace one match at a time, or use <strong>All</strong> to replace every match in one step (undoable with <kbd>Cmd+Z</kbd>)</li>
+          </ul>
+        </section>
+
         <!-- Scene Navigator -->
         <section class="help-section">
           <h3>Scene Navigator</h3>
           <p>Press <kbd>Cmd+B</kbd> to toggle the left panel. The <strong>Scenes</strong> tab shows all your scene headings with auto-numbered labels.</p>
-          <p>Click any scene to jump directly to it in the editor. Scene numbers update automatically as you add or reorder scenes.</p>
+          <p>Click any scene to jump directly to it in the editor. Drag the handle (<strong>⠿</strong>) that appears on hover to reorder scenes — the entire scene (heading + all content until the next scene) moves as a single block, undoable with <kbd>Cmd+Z</kbd>.</p>
         </section>
 
         <!-- Story Panel -->
@@ -111,7 +128,18 @@
             <li>Characters who appear in the scene</li>
             <li>Estimated page count</li>
           </ul>
-          <p>You can add a <strong>Description</strong> (what happens) and <strong>Shoot Notes</strong> (equipment, VFX, location details) to each card. Click <strong>Back to Script</strong> to return to the editor.</p>
+          <p>You can add a <strong>Description</strong> (what happens) and <strong>Shoot Notes</strong> (equipment, VFX, location details) to each card. Drag the scene number badge to reorder cards — this reorders the scenes in your screenplay. Click <strong>Back to Script</strong> to return to the editor.</p>
+        </section>
+
+        <!-- Statistics -->
+        <section class="help-section">
+          <h3>Script Statistics</h3>
+          <p>Press <kbd>Cmd+Shift+I</kbd> or go to <strong>View → Statistics</strong> to see a breakdown of your screenplay:</p>
+          <ul>
+            <li>Page count, word count, scene count, dialogue blocks, estimated screen time</li>
+            <li>Interior vs. exterior and day vs. night scene counts</li>
+            <li>Per-character table showing scenes, dialogue blocks, and percentage of total dialogue</li>
+          </ul>
         </section>
 
         <!-- Exporting -->
@@ -131,6 +159,11 @@
             <li><strong>Indian</strong> — two-column layout (dialogue left, translation right)</li>
           </ul>
           <p>The selected font (Noto Sans Malayalam or Manjari) is embedded in the PDF.</p>
+          <p>You can also export as:</p>
+          <ul>
+            <li><strong>Fountain</strong> — plain-text screenwriting format, compatible with Highland, Fade In, and other tools</li>
+            <li><strong>Plain Text</strong> — formatted .txt file with proper screenplay indentation</li>
+          </ul>
         </section>
 
         <!-- Fonts -->
@@ -169,6 +202,9 @@
               <tr><td><kbd>Cmd+Shift+S</kbd></td><td>Save As</td></tr>
               <tr><td><kbd>Cmd+B</kbd></td><td>Toggle left panel</td></tr>
               <tr><td><kbd>Cmd+Shift+K</kbd></td><td>Toggle scene cards</td></tr>
+              <tr><td><kbd>Cmd+Shift+I</kbd></td><td>Script statistics</td></tr>
+              <tr><td><kbd>Cmd+F</kbd></td><td>Find</td></tr>
+              <tr><td><kbd>Cmd+Shift+H</kbd></td><td>Find and Replace</td></tr>
               <tr><td><kbd>Ctrl+Space</kbd></td><td>Toggle English / Malayalam</td></tr>
               <tr><td><kbd>Cmd+Z</kbd></td><td>Undo</td></tr>
               <tr><td><kbd>Cmd+Shift+Z</kbd></td><td>Redo</td></tr>
