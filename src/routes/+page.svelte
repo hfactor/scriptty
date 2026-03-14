@@ -195,10 +195,11 @@
   <div class="workspace">
     {#if showSceneCards}
       <SceneCardsView onClose={() => { showSceneCards = false; }} />
-    {:else}
+    {/if}
+    <div class="editor-area" class:hidden={showSceneCards}>
       <LeftPanel isOpen={panelOpen} />
       <Editor bind:findReplaceOpen bind:findReplaceMode />
-    {/if}
+    </div>
   </div>
 </main>
 
@@ -221,5 +222,16 @@
     display: flex;
     flex-direction: row;
     overflow: hidden;
+  }
+
+  .editor-area {
+    display: flex;
+    flex-direction: row;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  .editor-area.hidden {
+    display: none;
   }
 </style>

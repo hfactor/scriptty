@@ -1,5 +1,8 @@
 <script lang="ts">
+  import { Fragment, type Node as PMNode } from 'prosemirror-model';
+  import { TextSelection } from 'prosemirror-state';
   import { documentStore } from '$lib/stores/documentStore.svelte';
+  import { editorStore } from '$lib/stores/editorStore.svelte';
 
   let { onClose }: { onClose: () => void } = $props();
 
@@ -18,6 +21,11 @@
     /** Manually written shoot notes */
     shootNotes: string;
   }
+
+  // Drag state
+  let dragFromScene = $state<number | null>(null);
+  let dropTargetScene = $state<number | null>(null);
+  let gridEl = $state<HTMLDivElement | null>(null);
 
   /** Parse INT./EXT., location, and time from a scene heading */
   function parseSceneHeading(heading: string): { location: string; time: string } {
@@ -129,6 +137,138 @@
     }
     documentStore.markDirty();
   }
+
+  // --- Custom drag via mouse events ---
+  // Same approach as SceneNavigator: mousedown/mousemove/mouseup
+  // because HTML5 DnD is unreliable in Tauri's WebKit WebView.
+
+  /**
+   * Given x/y coordinates, determine which card the cursor is over
+   * by checking the bounding rects of .card elements in the grid.
+   */
+  function sceneNumberAtPoint(clientX: number, clientY: number): number | null {
+    if (!gridEl) return null;
+    const cardEls = gridEl.querySelectorAll('.card');
+    for (let i = 0; i < cardEls.length; i++) {
+      const rect = cardEls[i].getBoundingClientRect();
+      if (clientX >= rect.left && clientX <= rect.right &&
+          clientY >= rect.top && clientY <= rect.bottom) {
+        return i + 1; // scene numbers are 1-based
+      }
+    }
+    return null;
+  }
+
+  function handleMouseMove(event: MouseEvent) {
+    if (dragFromScene === null) return;
+    event.preventDefault();
+    const target = sceneNumberAtPoint(event.clientX, event.clientY);
+    if (target !== null && target !== dragFromScene) {
+      dropTargetScene = target;
+    } else {
+      dropTargetScene = null;
+    }
+  }
+
+  function handleMouseUp() {
+    if (dragFromScene === null) return;
+
+    const from = dragFromScene;
+    const to = dropTargetScene;
+
+    // Reset state
+    dragFromScene = null;
+    dropTargetScene = null;
+
+    // Remove listeners
+    window.removeEventListener('mousemove', handleMouseMove);
+    window.removeEventListener('mouseup', handleMouseUp);
+
+    if (to !== null && from !== to) {
+      reorderScene(from, to);
+    }
+  }
+
+  function startDrag(event: MouseEvent, sceneNumber: number) {
+    event.preventDefault();
+    dragFromScene = sceneNumber;
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+  }
+
+  /**
+   * Reorder a scene in the ProseMirror document.
+   *
+   * Same logic as SceneNavigator: a "scene" is a scene_heading node and all
+   * nodes following it until the next scene_heading (or end of document).
+   * Delete + insert in a single ProseMirror transaction for Cmd+Z undo.
+   */
+  function reorderScene(fromNumber: number, toNumber: number) {
+    const view = editorStore.view;
+    if (!view) return;
+
+    const doc = view.state.doc;
+
+    // Collect scene boundaries: { childIndex, offset } for each scene_heading
+    const sceneBounds: { childIndex: number; offset: number }[] = [];
+    doc.forEach((node, offset, index) => {
+      if (node.type.name === 'scene_heading') {
+        sceneBounds.push({ childIndex: index, offset });
+      }
+    });
+
+    if (fromNumber < 1 || fromNumber > sceneBounds.length) return;
+    if (toNumber < 1 || toNumber > sceneBounds.length) return;
+
+    const fromIdx = fromNumber - 1;
+    const toIdx = toNumber - 1;
+
+    // Source scene child range
+    const fromChildStart = sceneBounds[fromIdx].childIndex;
+    const fromChildEnd = fromIdx + 1 < sceneBounds.length
+      ? sceneBounds[fromIdx + 1].childIndex
+      : doc.childCount;
+
+    // Collect the source scene's nodes
+    const sceneNodes: PMNode[] = [];
+    for (let i = fromChildStart; i < fromChildEnd; i++) {
+      sceneNodes.push(doc.child(i));
+    }
+
+    // Source scene position range
+    const fromStartPos = sceneBounds[fromIdx].offset;
+    const fromEndPos = fromIdx + 1 < sceneBounds.length
+      ? sceneBounds[fromIdx + 1].offset
+      : doc.content.size;
+
+    // Insertion position
+    let insertPos: number;
+    if (toNumber < fromNumber) {
+      insertPos = sceneBounds[toIdx].offset;
+    } else {
+      insertPos = toIdx + 1 < sceneBounds.length
+        ? sceneBounds[toIdx + 1].offset
+        : doc.content.size;
+    }
+
+    const fragment = Fragment.from(sceneNodes);
+    const tr = view.state.tr;
+
+    if (insertPos <= fromStartPos) {
+      tr.insert(insertPos, fragment);
+      const shift = fragment.size;
+      tr.delete(fromStartPos + shift, fromEndPos + shift);
+    } else {
+      tr.delete(fromStartPos, fromEndPos);
+      const shift = fromEndPos - fromStartPos;
+      tr.insert(insertPos - shift, fragment);
+    }
+
+    tr.scrollIntoView();
+    view.dispatch(tr);
+    documentStore.markDirty();
+  }
 </script>
 
 <div class="scene-cards-view">
@@ -140,11 +280,22 @@
   {#if cards.length === 0}
     <p class="empty-message">No scenes in the screenplay yet.</p>
   {:else}
-    <div class="cards-grid">
-      {#each cards as card}
-        <div class="card">
+    <div class="cards-grid" bind:this={gridEl}>
+      {#each cards as card (card.contentIndex)}
+        <div
+          class="card"
+          class:dragging={dragFromScene === card.sceneNumber}
+          class:drop-target={dropTargetScene === card.sceneNumber}
+        >
           <div class="card-header">
-            <span class="card-number">{card.sceneNumber}.</span>
+            <!-- Scene number badge is the drag handle -->
+            <span
+              class="card-number"
+              onmousedown={(e: MouseEvent) => startDrag(e, card.sceneNumber)}
+              role="button"
+              tabindex="-1"
+              aria-label="Drag to reorder scene {card.sceneNumber}"
+            >{card.sceneNumber}.</span>
             <span class="card-heading">{card.heading.toUpperCase()}</span>
           </div>
           <div class="card-meta">
@@ -244,6 +395,16 @@
     border: 1px solid var(--border-subtle);
     border-radius: 8px;
     overflow: hidden;
+    transition: opacity 120ms ease, border-color 120ms ease;
+  }
+
+  .card.dragging {
+    opacity: 0.4;
+  }
+
+  .card.drop-target {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 1px var(--accent);
   }
 
   .card-header {
@@ -260,6 +421,19 @@
     font-weight: 700;
     color: var(--accent);
     font-variant-numeric: tabular-nums;
+    cursor: grab;
+    user-select: none;
+    padding: 2px 4px;
+    border-radius: 4px;
+    transition: background 120ms ease;
+  }
+
+  .card-number:hover {
+    background: var(--accent-muted);
+  }
+
+  .card-number:active {
+    cursor: grabbing;
   }
 
   .card-heading {
