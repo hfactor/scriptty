@@ -149,6 +149,7 @@ pub fn run() {
       commands::export::export_combined_pdf,
       commands::export::export_plaintext,
       commands::export::export_fountain,
+      commands::file::open_external_url,
     ])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");

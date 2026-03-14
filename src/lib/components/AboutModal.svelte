@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { invoke } from '@tauri-apps/api/core';
+
   let { open = $bindable(false) } = $props<{ open: boolean }>();
 
   function handleKeydown(event: KeyboardEvent) {
@@ -11,6 +13,12 @@
     if (event.target === event.currentTarget) {
       open = false;
     }
+  }
+
+  function openExternal(event: MouseEvent, url: string) {
+    event.preventDefault();
+    event.stopPropagation();
+    invoke('open_external_url', { url });
   }
 </script>
 
@@ -31,7 +39,7 @@
       <div class="credits-section">
         <h3 class="credits-heading">Developer</h3>
         <p class="credits-name">Hrishikesh Bhaskaran (stultus)</p>
-        <p class="credits-contact">hello@stultus.in &middot; stultus.in</p>
+        <p class="credits-contact"><a href="mailto:hello@stultus.in" class="credits-link" onclick={(e) => openExternal(e, 'mailto:hello@stultus.in')}>hello@stultus.in</a> &middot; <a href="https://stultus.in" class="credits-link" onclick={(e) => openExternal(e, 'https://stultus.in')}>stultus.in</a></p>
       </div>
 
       <div class="credits-section">
@@ -139,6 +147,15 @@
     font-size: 12px;
     color: var(--text-secondary);
     margin: 2px 0;
+  }
+
+  .credits-link {
+    color: var(--accent);
+    text-decoration: none;
+  }
+
+  .credits-link:hover {
+    text-decoration: underline;
   }
 
   .license {

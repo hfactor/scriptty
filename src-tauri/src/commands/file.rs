@@ -59,3 +59,20 @@ pub fn open_screenplay(path: String) -> Result<ScreenplayDocument, String> {
 
     Ok(document)
 }
+
+/// Opens a URL in the system's default browser or mail client.
+///
+/// Uses Tauri's opener plugin on the Rust side, which bypasses the
+/// frontend scope restrictions that can silently block `openUrl()` calls.
+///
+/// # Arguments
+/// * `url` — The URL to open (e.g. "https://stultus.in" or "mailto:hello@stultus.in")
+/// * `app` — The Tauri AppHandle, injected automatically by Tauri
+#[tauri::command]
+pub fn open_external_url(url: String, app: tauri::AppHandle) -> Result<(), String> {
+    // `OpenerExt` is a trait that adds the `.opener()` method to AppHandle
+    use tauri_plugin_opener::OpenerExt;
+    app.opener()
+        .open_url(&url, None::<&str>)
+        .map_err(|e| format!("Failed to open URL '{}': {}", url, e))
+}
