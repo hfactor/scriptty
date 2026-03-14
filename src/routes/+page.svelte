@@ -9,6 +9,7 @@
   import SceneCardsView from '$lib/components/SceneCardsView.svelte';
   import AboutModal from '$lib/components/AboutModal.svelte';
   import HelpModal from '$lib/components/HelpModal.svelte';
+  import StatisticsModal from '$lib/components/StatisticsModal.svelte';
   import { documentStore } from '$lib/stores/documentStore.svelte';
   import { themeStore } from '$lib/stores/themeStore.svelte';
 
@@ -18,6 +19,7 @@
   let showSceneCards = $state(false);
   let findReplaceOpen = $state(false);
   let findReplaceMode = $state<'find' | 'replace'>('find');
+  let showStatistics = $state(false);
 
   // Module-level guard — prevents newDocument() from firing again on HMR re-mount
   let appInitialized = false;
@@ -72,6 +74,12 @@
             }
           });
         });
+      }
+      // Cmd+Shift+I — Script Statistics
+      if ((event.metaKey || event.ctrlKey) && event.shiftKey && event.key.toLowerCase() === 'i') {
+        event.preventDefault();
+        showStatistics = true;
+        return;
       }
       // Cmd+F — Open Find bar
       if ((event.metaKey || event.ctrlKey) && !event.shiftKey && event.key === 'f') {
@@ -132,6 +140,14 @@
       showHelp = true;
     });
 
+    const unlistenStatistics = await listen('menu-statistics', () => {
+      showStatistics = true;
+    });
+
+    const unlistenSceneCards = await listen('menu-scene-cards', () => {
+      showSceneCards = !showSceneCards;
+    });
+
     const unlistenFind = await listen('menu-find', () => {
       findReplaceOpen = true;
       findReplaceMode = 'find';
@@ -164,6 +180,8 @@
       unlistenSaveAs();
       unlistenAbout();
       unlistenHelpGuide();
+      unlistenStatistics();
+      unlistenSceneCards();
       unlistenFind();
       unlistenFindReplace();
       unlistenQuit();
@@ -186,6 +204,7 @@
 
 <AboutModal bind:open={showAbout} />
 <HelpModal bind:open={showHelp} />
+<StatisticsModal bind:open={showStatistics} />
 
 <style>
   main {

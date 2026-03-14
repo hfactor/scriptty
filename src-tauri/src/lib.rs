@@ -72,6 +72,17 @@ pub fn run() {
         ],
       )?;
 
+      // View menu for statistics and scene cards
+      let view_menu = Submenu::with_items(
+        app,
+        "View",
+        true,
+        &[
+          &MenuItem::with_id(app, "statistics", "Statistics", true, Some("CmdOrCtrl+Shift+I"))?,
+          &MenuItem::with_id(app, "scene-cards", "Scene Cards", true, Some("CmdOrCtrl+Shift+K"))?,
+        ],
+      )?;
+
       // Help menu with About dialog and external links
       let help_menu = Submenu::with_items(
         app,
@@ -87,7 +98,7 @@ pub fn run() {
       )?;
 
       // Assemble the menu bar from the submenus and apply it to the app
-      let menu = Menu::with_items(app, &[&file_menu, &edit_menu, &help_menu])?;
+      let menu = Menu::with_items(app, &[&file_menu, &edit_menu, &view_menu, &help_menu])?;
       app.set_menu(menu)?;
 
       // Handle clicks on our custom menu items by emitting events to the frontend.
@@ -105,6 +116,8 @@ pub fn run() {
           "save-as" => { let _ = app.emit("menu-save-as", ()); }
           "about" => { let _ = app.emit("menu-about", ()); }
           "help-guide" => { let _ = app.emit("menu-help-guide", ()); }
+          "statistics" => { let _ = app.emit("menu-statistics", ()); }
+          "scene-cards" => { let _ = app.emit("menu-scene-cards", ()); }
           "find" => { let _ = app.emit("menu-find", ()); }
           "find-replace" => { let _ = app.emit("menu-find-replace", ()); }
           "quit" => { let _ = app.emit("menu-quit", ()); }
