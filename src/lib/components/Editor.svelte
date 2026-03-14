@@ -10,9 +10,16 @@
   import { screenplayKeymap } from '$lib/editor/keymap';
   import { autoUppercasePlugin } from '$lib/editor/autoUppercase';
   import { characterAutocompletePlugin, autocompleteKey } from '$lib/editor/characterAutocomplete';
+  import { findReplacePlugin } from '$lib/editor/findReplace';
+  import FindReplaceBar from '$lib/components/FindReplaceBar.svelte';
   import { InputModeManager } from '$lib/editor/input/InputModeManager';
   import { documentStore } from '$lib/stores/documentStore.svelte';
   import { editorStore } from '$lib/stores/editorStore.svelte';
+
+  let {
+    findReplaceOpen = $bindable(false),
+    findReplaceMode = $bindable<'find' | 'replace'>('find'),
+  } = $props();
 
   let editorElement: HTMLDivElement;
   let view: EditorView | null = null;
@@ -106,6 +113,7 @@
         keymap(baseKeymap),
         history(),
         autoUppercasePlugin,
+        findReplacePlugin,
       ]
     });
 
@@ -243,6 +251,9 @@
 </script>
 
 <div class="editor-wrapper">
+  {#if findReplaceOpen}
+    <FindReplaceBar mode={findReplaceMode} onclose={() => { findReplaceOpen = false; }} />
+  {/if}
   <div class="editor-scroll">
     <div class="editor-container" bind:this={editorElement} style="--editor-font: '{fontFamily}'"></div>
   </div>
@@ -488,5 +499,17 @@
   :global(.autocomplete-item.selected) {
     background: var(--accent-muted);
     color: var(--accent);
+  }
+
+  /* ─── Find and Replace highlights ─── */
+  :global(.find-match) {
+    background: rgba(255, 213, 79, 0.35);
+    border-radius: 2px;
+  }
+
+  :global(.find-match-current) {
+    background: rgba(255, 152, 0, 0.55);
+    border-radius: 2px;
+    outline: 2px solid var(--accent);
   }
 </style>

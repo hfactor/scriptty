@@ -16,6 +16,8 @@
   let showAbout = $state(false);
   let showHelp = $state(false);
   let showSceneCards = $state(false);
+  let findReplaceOpen = $state(false);
+  let findReplaceMode = $state<'find' | 'replace'>('find');
 
   // Module-level guard — prevents newDocument() from firing again on HMR re-mount
   let appInitialized = false;
@@ -71,6 +73,21 @@
           });
         });
       }
+      // Cmd+F — Open Find bar
+      if ((event.metaKey || event.ctrlKey) && !event.shiftKey && event.key === 'f') {
+        event.preventDefault();
+        findReplaceOpen = true;
+        findReplaceMode = 'find';
+        return;
+      }
+      // Cmd+Shift+H — Open Find and Replace bar
+      // (Cmd+H is macOS "Hide Window", so we use Cmd+Shift+H)
+      if ((event.metaKey || event.ctrlKey) && event.shiftKey && event.key.toLowerCase() === 'h') {
+        event.preventDefault();
+        findReplaceOpen = true;
+        findReplaceMode = 'replace';
+        return;
+      }
       // Ctrl+B (Mac: Cmd+B) toggles left panel
       if ((event.metaKey || event.ctrlKey) && event.key === 'b') {
         event.preventDefault();
@@ -115,6 +132,16 @@
       showHelp = true;
     });
 
+    const unlistenFind = await listen('menu-find', () => {
+      findReplaceOpen = true;
+      findReplaceMode = 'find';
+    });
+
+    const unlistenFindReplace = await listen('menu-find-replace', () => {
+      findReplaceOpen = true;
+      findReplaceMode = 'replace';
+    });
+
     const unlistenQuit = await listen('menu-quit', async () => {
       if (!(await documentStore.confirmIfDirty())) return;
       // All clear — skip the onCloseRequested check and close the window
@@ -138,6 +165,8 @@
       unlistenSaveAs();
       unlistenAbout();
       unlistenHelpGuide();
+      unlistenFind();
+      unlistenFindReplace();
       unlistenQuit();
       unlistenClose();
     };
@@ -151,7 +180,7 @@
       <SceneCardsView onClose={() => { showSceneCards = false; }} />
     {:else}
       <LeftPanel isOpen={panelOpen} />
-      <Editor />
+      <Editor bind:findReplaceOpen bind:findReplaceMode />
     {/if}
   </div>
 </main>

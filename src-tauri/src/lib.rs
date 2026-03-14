@@ -66,6 +66,9 @@ pub fn run() {
           &PredefinedMenuItem::copy(app, None)?,
           &PredefinedMenuItem::paste(app, None)?,
           &PredefinedMenuItem::select_all(app, None)?,
+          &PredefinedMenuItem::separator(app)?,
+          &MenuItem::with_id(app, "find", "Find", true, Some("CmdOrCtrl+F"))?,
+          &MenuItem::with_id(app, "find-replace", "Find and Replace", true, Some("CmdOrCtrl+Shift+H"))?,
         ],
       )?;
 
@@ -102,6 +105,8 @@ pub fn run() {
           "save-as" => { let _ = app.emit("menu-save-as", ()); }
           "about" => { let _ = app.emit("menu-about", ()); }
           "help-guide" => { let _ = app.emit("menu-help-guide", ()); }
+          "find" => { let _ = app.emit("menu-find", ()); }
+          "find-replace" => { let _ = app.emit("menu-find-replace", ()); }
           "quit" => { let _ = app.emit("menu-quit", ()); }
           // External links — open in the default browser using the opener plugin.
           // `tauri_plugin_opener::OpenerExt` provides the `.opener()` method on AppHandle.
