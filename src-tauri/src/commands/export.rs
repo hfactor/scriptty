@@ -6,6 +6,7 @@
 
 use crate::fonts;
 use crate::screenplay::document::ScreenplayDocument;
+use crate::screenplay::fountain;
 use crate::screenplay::pdf;
 use serde::Deserialize;
 
@@ -277,4 +278,21 @@ pub fn export_combined_pdf(
 
     // Compile the combined markup to PDF
     pdf::compile_markup_to_pdf(&markup, &font_data)
+}
+
+/// Exports a screenplay document as a Fountain plain-text string.
+///
+/// Fountain is an open plain-text screenwriting format (fountain.io) that can
+/// be read by Highland, Fade In, and other screenwriting tools. The output is
+/// UTF-8 encoded, preserving Malayalam text as-is.
+///
+/// # Arguments
+/// * `document` — The full `.screenplay` document, deserialized from JSON by Tauri.
+///
+/// # Returns
+/// * `Ok(String)` — The Fountain-formatted screenplay text.
+/// * `Err(String)` — An error message if conversion fails.
+#[tauri::command]
+pub fn export_fountain(document: ScreenplayDocument) -> Result<String, String> {
+    Ok(fountain::generate_fountain(&document.content, &document.meta))
 }

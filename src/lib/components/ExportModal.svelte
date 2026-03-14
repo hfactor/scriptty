@@ -15,6 +15,7 @@
   let format = $state<'hollywood' | 'indian'>('hollywood');
 
   let exporting = $state(false);
+  let exportingFountain = $state(false);
   let errorMessage = $state('');
 
   // Derived: check if synopsis/treatment have content
@@ -127,6 +128,39 @@
     return { location: heading, time: '' };
   }
 
+  async function handleFountainExport() {
+    if (!documentStore.document) return;
+    exportingFountain = true;
+    errorMessage = '';
+
+    try {
+      const fountainText = await invoke<string>('export_fountain', {
+        document: documentStore.document,
+      });
+
+      const title = documentStore.document.meta.title || 'screenplay';
+      const path = await save({
+        defaultPath: `${title}.fountain`,
+        filters: [{ name: 'Fountain', extensions: ['fountain'] }],
+      });
+
+      if (!path) {
+        exportingFountain = false;
+        return;
+      }
+
+      // Write the Fountain text as UTF-8 bytes
+      const encoder = new TextEncoder();
+      await writeFile(path, encoder.encode(fountainText));
+      open = false;
+    } catch (e) {
+      console.error('[ExportModal] Fountain export failed:', e);
+      errorMessage = String(e);
+    } finally {
+      exportingFountain = false;
+    }
+  }
+
   async function handleExport() {
     if (!documentStore.document) return;
     exporting = true;
@@ -220,6 +254,9 @@
 
       <div class="modal-footer">
         <button class="btn-ghost" onclick={() => { open = false; }}>Cancel</button>
+        <button class="btn-secondary" onclick={handleFountainExport} disabled={exportingFountain}>
+          {exportingFountain ? 'Exporting...' : 'Fountain'}
+        </button>
         <button class="btn-primary" onclick={handleExport} disabled={exporting}>
           {exporting ? 'Exporting...' : 'Export PDF'}
         </button>
@@ -360,6 +397,29 @@
   .btn-ghost:hover {
     background: var(--surface-hover);
     color: var(--text-primary);
+  }
+
+  .btn-secondary {
+    height: 28px;
+    padding: 0 12px;
+    border-radius: 6px;
+    border: 1px solid var(--border-medium);
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-family: system-ui, -apple-system, sans-serif;
+    cursor: pointer;
+    transition: background 120ms ease, color 120ms ease;
+  }
+
+  .btn-secondary:hover {
+    background: var(--surface-hover);
+    color: var(--text-primary);
+  }
+
+  .btn-secondary:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
   }
 
   .btn-primary {
