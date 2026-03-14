@@ -121,14 +121,16 @@
   </div>
 
   <div class="story-editor">
-    <textarea
-      class="narrative-textarea"
-      placeholder="Write your full-length story here. This is your space for long-form narrative — no formatting constraints, no element types. Just write."
-      value={narrative}
-      oninput={updateNarrative}
-      onkeydown={handleKeydown}
-      bind:this={textareaEl}
-    ></textarea>
+    <div class="page">
+      <textarea
+        class="narrative-textarea"
+        placeholder="Write your full-length story here. This is your space for long-form narrative — no formatting constraints, no element types. Just write."
+        value={narrative}
+        oninput={updateNarrative}
+        onkeydown={handleKeydown}
+        bind:this={textareaEl}
+      ></textarea>
+    </div>
   </div>
 
   <div class="status-bar">
@@ -228,20 +230,28 @@
 
   .story-editor {
     flex: 1;
-    display: flex;
-    justify-content: center;
     overflow-y: auto;
-    padding: 40px 24px;
+    background: var(--surface-base);
+    padding: 40px 0;
+  }
+
+  .page {
+    max-width: 680px;
+    margin: 0 auto;
+    min-height: 800px;
+    background: var(--page-bg);
+    border-radius: 2px;
+    box-shadow: 0 4px 24px var(--page-shadow), 0 1px 4px rgba(0, 0, 0, 0.2);
   }
 
   .narrative-textarea {
     width: 100%;
-    max-width: 680px;
     height: 100%;
-    padding: 24px;
-    font-size: 15px;
-    line-height: 1.8;
-    color: var(--text-primary);
+    min-height: 800px;
+    padding: 60px 72px;
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--text-on-page);
     background: transparent;
     border: none;
     font-family: system-ui, -apple-system, sans-serif;
