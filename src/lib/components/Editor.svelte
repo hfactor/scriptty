@@ -344,7 +344,7 @@
 
   :global(.ProseMirror .scene-heading::before) {
     content: counter(scene-counter) ". ";
-    color: #999;
+    color: var(--text-muted);
     font-size: 11px;
     font-weight: normal;
     margin-right: 4px;

@@ -218,7 +218,7 @@
     height: 26px;
     padding: 0 8px;
     border: 1px solid var(--border-subtle);
-    border-radius: 4px;
+    border-radius: 6px;
     background: var(--surface-base);
     color: var(--text-primary);
     font-size: 12px;
@@ -252,7 +252,7 @@
     min-width: 26px;
     padding: 0 6px;
     border: none;
-    border-radius: 4px;
+    border-radius: 6px;
     background: transparent;
     color: var(--text-muted);
     font-size: 12px;

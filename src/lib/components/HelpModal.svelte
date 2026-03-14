@@ -202,7 +202,7 @@
     background: var(--surface-float);
     border: 1px solid var(--border-medium);
     border-radius: 12px;
-    width: 560px;
+    width: 480px;
     max-width: 90vw;
     max-height: 85vh;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
@@ -221,7 +221,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 20px 24px 16px;
+    padding: 24px;
     border-bottom: 1px solid var(--border-subtle);
     flex-shrink: 0;
   }
@@ -255,7 +255,7 @@
 
   .help-content {
     overflow-y: auto;
-    padding: 8px 24px 24px;
+    padding: 24px;
   }
 
   .help-section {
