@@ -144,7 +144,6 @@
 
     const unlistenQuit = await listen('menu-quit', async () => {
       if (!(await documentStore.confirmIfDirty())) return;
-      // All clear — skip the onCloseRequested check and close the window
       quitConfirmed = true;
       await getCurrentWindow().close();
     });
