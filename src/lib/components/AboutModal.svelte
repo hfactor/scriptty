@@ -39,7 +39,7 @@
         <p class="credits-name">Abraham Joseph (Abrooz)</p>
         <p class="credits-name">Aswin Raveendran</p>
         <p class="credits-name">Sanjay Krishna</p>
-        <p class="credits-name">Aashiq Abu (director)</p>
+        <p class="credits-name">Aashiq Abu (Filmmaker)</p>
       </div>
 
       <hr class="divider" />
