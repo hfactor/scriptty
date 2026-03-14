@@ -55,6 +55,7 @@
               <tr><td>Dialogue</td><td><kbd>Tab</kbd></td><td>Parenthetical</td></tr>
               <tr><td>Parenthetical</td><td><kbd>Enter</kbd></td><td>Dialogue</td></tr>
               <tr><td>Parenthetical</td><td><kbd>Tab</kbd></td><td>Character</td></tr>
+              <tr><td>Any element</td><td><kbd>Cmd+Shift+T</kbd></td><td>Transition</td></tr>
               <tr><td>Transition</td><td><kbd>Enter</kbd></td><td>Scene Heading</td></tr>
             </tbody>
           </table>
@@ -211,6 +212,7 @@
               <tr><td><kbd>Cmd+Shift+Z</kbd></td><td>Redo</td></tr>
               <tr><td><kbd>Tab</kbd></td><td>Next element type</td></tr>
               <tr><td><kbd>Shift+Tab</kbd></td><td>Previous element type</td></tr>
+              <tr><td><kbd>Cmd+Shift+T</kbd></td><td>Convert to transition</td></tr>
               <tr><td><kbd>Shift+Enter</kbd></td><td>New scene heading</td></tr>
               <tr><td><kbd>Escape</kbd></td><td>Close any modal</td></tr>
             </tbody>

@@ -5,6 +5,7 @@
 //   Shift+Enter   → create new scene_heading below (universal "new scene" shortcut)
 //   Tab           → cycle element type: action→character, dialogue→parenthetical, parenthetical→character, character→action
 //   Shift+Tab     → revert to action (from character/dialogue), or action→scene_heading at cursor pos 0
+//   Shift+Mod+T   → convert current element to transition
 //   Mod+Z         → undo
 //   Shift+Mod+Z   → redo
 
@@ -178,14 +179,30 @@ const handleShiftTab: Command = (state, dispatch) => {
 };
 
 /**
+ * Mod+T handler: converts the current element to a transition.
+ * Transitions are rare, so they get a dedicated shortcut rather than a Tab cycle slot.
+ */
+const handleModT: Command = (state, dispatch) => {
+	if (dispatch) {
+		const $from = state.selection.$from;
+		const pos = $from.before();
+		const tr = state.tr.setNodeMarkup(pos, screenplaySchema.nodes.transition);
+		tr.scrollIntoView();
+		dispatch(tr);
+	}
+	return true;
+};
+
+/**
  * The screenplay keymap plugin.
- * Binds Enter, Tab, and Shift-Tab to screenplay-specific navigation commands.
+ * Binds Enter, Tab, Shift-Tab, and Mod-T to screenplay-specific navigation commands.
  */
 export const screenplayKeymap = keymap({
 	Enter: handleEnter,
 	'Shift-Enter': handleShiftEnter,
 	Tab: handleTab,
 	'Shift-Tab': handleShiftTab,
+	'Shift-Mod-t': handleModT,
 	'Mod-z': undo,
 	'Shift-Mod-z': redo
 });

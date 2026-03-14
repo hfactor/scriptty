@@ -391,6 +391,10 @@
     content: ")";
   }
 
+  :global(.ProseMirror .parenthetical br.ProseMirror-trailingBreak) {
+    display: none;
+  }
+
   :global(.ProseMirror .transition) {
     text-align: right;
     margin-top: 1em;
