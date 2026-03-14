@@ -311,16 +311,18 @@
             <span class="meta-item page-estimate">{card.pageEstimate}</span>
           </div>
           <div class="card-editable">
-            <label class="field-label">Description</label>
+            <label class="field-label" for="desc-{card.sceneNumber}">Description</label>
             <textarea
+              id="desc-{card.sceneNumber}"
               class="card-textarea"
               placeholder="What happens in this scene..."
               value={card.description}
               oninput={(e) => updateDescription(card.sceneNumber - 1, (e.target as HTMLTextAreaElement).value)}
               rows="2"
             ></textarea>
-            <label class="field-label">Shoot Notes</label>
+            <label class="field-label" for="notes-{card.sceneNumber}">Shoot Notes</label>
             <textarea
+              id="notes-{card.sceneNumber}"
               class="card-textarea"
               placeholder="Equipment, stunts, VFX, location notes..."
               value={card.shootNotes}

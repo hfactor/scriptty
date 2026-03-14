@@ -344,10 +344,6 @@
     margin: 4px 0;
   }
 
-  .help-section ul ul {
-    margin: 4px 0 4px;
-  }
-
   code {
     font-size: 12px;
     background: var(--surface-hover);
