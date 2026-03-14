@@ -475,10 +475,17 @@ pub fn generate_typst_markup(content: &Value, font_name: &str, meta: &Screenplay
                     match line {
                         DialogueLine::Parenthetical(text) => {
                             let escaped = escape_typst(text);
+                            // Wrap in parentheses if not already present —
+                            // the editor shows them via CSS pseudo-elements, not in content.
+                            let display = if escaped.starts_with('(') && escaped.ends_with(')') {
+                                escaped.clone()
+                            } else {
+                                format!("({})", escaped)
+                            };
                             // Parentheticals: starts at 7.5cm from page left (4.5cm from text area left)
                             block.push_str(&format!(
                                 "  #pad(left: 4.5cm, right: 3.5cm)[#emph[{}]]\n",
-                                escaped
+                                display
                             ));
                         }
                         DialogueLine::Dialogue(text) => {
@@ -529,10 +536,16 @@ pub fn generate_typst_markup(content: &Value, font_name: &str, meta: &Screenplay
                         format!("#pad(left: 3.5cm, right: 3cm)[{}]\n", escaped)
                     }
                     "parenthetical" => {
+                        // Wrap in parentheses if not already present
+                        let display = if escaped.starts_with('(') && escaped.ends_with(')') {
+                            escaped.clone()
+                        } else {
+                            format!("({})", escaped)
+                        };
                         // Parenthetical: 7.5cm from page left → pad(left: 4.5cm, right: 3.5cm)
                         format!(
                             "#pad(left: 4.5cm, right: 3.5cm)[#emph[{}]]\n",
-                            escaped
+                            display
                         )
                     }
                     _ => continue, // Skip unknown node types
@@ -928,6 +941,12 @@ pub fn generate_indian_markup(content: &Value, font_name: &str, meta: &Screenpla
                 }
                 "parenthetical" => {
                     let escaped = escape_typst(&element.text);
+                    // Wrap in parentheses if not already wrapped (parens are visual-only in the editor)
+                    let display = if escaped.starts_with('(') && escaped.ends_with(')') {
+                        escaped.clone()
+                    } else {
+                        format!("({})", escaped)
+                    };
                     if let Some(char_name) = pending_character.take() {
                         // Parenthetical right after a character name:
                         // Left column = character name (right-aligned, bold)
@@ -936,7 +955,7 @@ pub fn generate_indian_markup(content: &Value, font_name: &str, meta: &Screenpla
                         char_block_rows.push(format!(
                             "#grid(\n  columns: (50%, 50%),\n  column-gutter: 1em,\n  align(right)[#pad(right: 0.5em)[*{}*]],\n  align(left)[#pad(left: 0.5em)[#emph[{}]]]\n)\n",
                             escaped_name.to_uppercase(),
-                            escaped
+                            display
                         ));
                         // Character is consumed — next dialogue will have empty left column.
                     } else {
@@ -944,7 +963,7 @@ pub fn generate_indian_markup(content: &Value, font_name: &str, meta: &Screenpla
                         // Left column = empty, right column = parenthetical (italic)
                         char_block_rows.push(format!(
                             "#grid(\n  columns: (50%, 50%),\n  column-gutter: 1em,\n  [#pad(right: 0.5em)[]],\n  align(left)[#pad(left: 0.5em)[#emph[{}]]]\n)\n",
-                            escaped
+                            display
                         ));
                     }
                 }

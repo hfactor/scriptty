@@ -383,6 +383,14 @@
     font-style: italic;
   }
 
+  :global(.ProseMirror .parenthetical::before) {
+    content: "(";
+  }
+
+  :global(.ProseMirror .parenthetical::after) {
+    content: ")";
+  }
+
   :global(.ProseMirror .transition) {
     text-align: right;
     margin-top: 1em;
