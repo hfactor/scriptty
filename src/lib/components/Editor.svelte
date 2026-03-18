@@ -13,6 +13,7 @@
   import { findReplacePlugin } from '$lib/editor/findReplace';
   import FindReplaceBar from '$lib/components/FindReplaceBar.svelte';
   import { InputModeManager } from '$lib/editor/input/InputModeManager';
+  import SettingsModal from '$lib/components/SettingsModal.svelte';
   import { documentStore } from '$lib/stores/documentStore.svelte';
   import { editorStore } from '$lib/stores/editorStore.svelte';
 
@@ -25,22 +26,16 @@
   let view: EditorView | null = null;
   const inputManager = InputModeManager.getInstance();
 
-  // Svelte 5 runes for reactive state
-  let currentMode = $state<'ENGLISH' | 'MALAYALAM'>('ENGLISH');
-  let currentElement = $state<string>('SCENE HEADING');
-  let modeFlash = $state(false);
-  let currentScheme = $state<'inscript1' | 'inscript2' | 'mozhi'>('mozhi');
+  const inputManager = InputModeManager.getInstance();
 
   // Map the font setting slug to a CSS font-family name
   let fontFamily = $derived(
     documentStore.currentFont === 'manjari' ? 'Manjari' : 'Noto Sans Malayalam'
   );
 
-  /** Switch the active Malayalam input scheme and update local state */
-  function selectScheme(scheme: 'inscript1' | 'inscript2' | 'mozhi') {
-    currentScheme = scheme;
-    inputManager.setScheme(scheme);
-  }
+  // Svelte 5 runes for reactive state
+  let currentElement = $state<string>('SCENE HEADING');
+  let showSettings = $state(false);
 
   // Create initial document with one empty scene_heading
   function createInitialDoc() {
@@ -172,14 +167,7 @@
       if (event.ctrlKey && event.code === 'Space') {
         event.preventDefault();
         event.stopPropagation();
-        const isNowMalayalam = inputManager.toggle();
-        currentMode = isNowMalayalam ? 'MALAYALAM' : 'ENGLISH';
-        // When toggling to Malayalam mode, ensure currentScheme reflects the manager's state
-        currentScheme = inputManager.scheme;
-
-        // Brief flash on the mode indicator for visual feedback
-        modeFlash = true;
-        setTimeout(() => { modeFlash = false; }, 500);
+        inputManager.toggle();
         return;
       }
 
@@ -259,33 +247,22 @@
   </div>
   <div class="status-bar">
     <div class="status-left">
-      <span class="status-mode" class:malayalam={currentMode === 'MALAYALAM'} class:flash={modeFlash}>
-        {currentMode}
-      </span>
-      {#if currentMode === 'MALAYALAM'}
-        <span class="status-separator">|</span>
-        <span class="scheme-selector">
-          <button
-            class="scheme-btn"
-            class:active={currentScheme === 'mozhi'}
-            onclick={() => selectScheme('mozhi')}
-          >Mozhi</button>
-          <button
-            class="scheme-btn"
-            class:active={currentScheme === 'inscript2'}
-            onclick={() => selectScheme('inscript2')}
-          >Inscript 2</button>
-          <button
-            class="scheme-btn"
-            class:active={currentScheme === 'inscript1'}
-            onclick={() => selectScheme('inscript1')}
-          >Inscript 1</button>
-        </span>
-      {/if}
+      <button class="settings-btn" onclick={() => { showSettings = true; }} title="Settings">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line>
+          <line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line>
+          <line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line>
+          <line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line>
+          <line x1="17" y1="16" x2="23" y2="16"></line>
+        </svg>
+        <span style="margin-left: 6px;">Settings</span>
+      </button>
     </div>
     <span class="status-element">{currentElement}</span>
   </div>
 </div>
+
+<SettingsModal bind:open={showSettings} />
 
 <style>
   .editor-wrapper {
@@ -469,14 +446,26 @@
     letter-spacing: 0.04em;
   }
 
-  .scheme-btn:hover {
-    color: var(--text-secondary);
-    background: var(--surface-hover);
+  .settings-btn {
+    display: flex;
+    align-items: center;
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-family: system-ui, -apple-system, sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 4px;
+    transition: background 120ms, color 120ms;
   }
 
-  .scheme-btn.active {
-    color: var(--accent);
-    font-weight: 600;
+  .settings-btn:hover {
+    color: var(--text-primary);
+    background: var(--surface-hover);
   }
 
   /* ─── Character autocomplete dropdown ─── */

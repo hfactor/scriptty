@@ -1,7 +1,6 @@
 <script lang="ts">
   import { open } from '@tauri-apps/plugin-dialog';
   import { documentStore } from '$lib/stores/documentStore.svelte';
-  import { themeStore } from '$lib/stores/themeStore.svelte';
   import MetadataModal from './MetadataModal.svelte';
   import ExportModal from './ExportModal.svelte';
 
@@ -62,29 +61,6 @@
   </div>
 
   <div class="btn-group right">
-    <!-- Theme toggle -->
-    <button class="btn-icon" onclick={() => themeStore.toggle()} title={themeStore.isDark ? 'Switch to light mode' : 'Switch to dark mode'}>
-      {themeStore.isDark ? 'Light' : 'Dark'}
-    </button>
-
-    <span class="separator"></span>
-
-    <!-- Font selector — segmented control -->
-    <div class="segmented">
-      <button
-        class="segmented-item"
-        class:active={documentStore.currentFont === 'noto-sans-malayalam'}
-        onclick={() => documentStore.setFont('noto-sans-malayalam')}
-      >Noto</button>
-      <button
-        class="segmented-item"
-        class:active={documentStore.currentFont === 'manjari'}
-        onclick={() => documentStore.setFont('manjari')}
-      >Manjari</button>
-    </div>
-
-    <span class="separator"></span>
-
     <button class="btn-ghost" onclick={() => { showExport = true; }}>Export</button>
     <button class="btn-primary" onclick={handleSave}>Save</button>
   </div>
